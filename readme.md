@@ -169,7 +169,7 @@ You can specify the python version you want to use with the following command:
 
 ```bash
 
-virtualenv  --python=python3.10  venv
+virtualenv  --python3.10  venv
 
 ```
 
