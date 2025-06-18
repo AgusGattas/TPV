@@ -13,6 +13,8 @@ from platform_configurations.urls import router as platform_configurations_route
 
 from django_global_places.urls import router as django_global_places_router
 
+from products.urls import router as products_router
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -29,6 +31,7 @@ base_router.registry.extend(users_router.registry)
 base_router.registry.extend(platform_configurations_router.registry)
 base_router.registry.extend(django_global_places_router.registry)
 base_router.registry.extend(notifications_router.registry)
+base_router.registry.extend(products_router.registry)
 
 
 

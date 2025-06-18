@@ -7,6 +7,8 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.conf import settings
+from PIL import Image
+import io
 
 
 def get_random_string(length):
@@ -39,3 +41,11 @@ def email_template_sender(
     email = EmailMessage(subject, message, to=[to_email], from_email=from_email)
     email.content_subtype = "html"
     email.send()
+
+def reduce_image_quality(original_image):
+    original_image = Image.open(io.BytesIO(original_image))
+    compressed_buffer = io.BytesIO()
+    original_image.save(compressed_buffer, format="WEBP", quality=85)
+    compressed_buffer.seek(0)
+
+    return compressed_buffer

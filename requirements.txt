@@ -8,3 +8,5 @@
 
 # FOR WEBSOCKET SUPPORT
 # -r requirements/websockets.txt
+
+Pillow==9.5.0

@@ -33,6 +33,10 @@ MY_APPS = [
     "django_global_places",
     "platform_configurations",
     "notifications",
+    "products",
+    "sales",
+    "cashbox",
+    "stock",
 ]
 
 INSTALLED_APPS = THIRD_APPS + MY_APPS + BASE_APPS
