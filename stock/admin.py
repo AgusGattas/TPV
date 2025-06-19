@@ -1,23 +1,24 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import StockMovement, StockMovementItem
+from .models import Stock, StockMovement
 
 
-class StockMovementItemInline(admin.TabularInline):
-    model = StockMovementItem
+class StockMovementInline(admin.TabularInline):
+    model = StockMovement
     extra = 0
-
-
-@admin.register(StockMovement)
-class StockMovementAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'type', 'reason', 'created_at')
-    list_filter = ('type', 'created_at')
-    search_fields = ('reason', 'user__email')
     readonly_fields = ('created_at', 'updated_at')
-    inlines = [StockMovementItemInline]
+
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product', 'current_quantity', 'average_cost', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('product__name', 'product__barcode')
+    readonly_fields = ('created_at', 'updated_at')
+    inlines = [StockMovementInline]
     fieldsets = (
         (None, {
-            'fields': ('user', 'type', 'reason')
+            'fields': ('product', 'current_quantity', 'average_cost')
         }),
         (_('Timestamps'), {
             'fields': ('created_at', 'updated_at'),
@@ -26,15 +27,15 @@ class StockMovementAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(StockMovementItem)
-class StockMovementItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'stock_movement', 'product', 'quantity', 'unit_price')
-    list_filter = ('stock_movement__type', 'created_at')
-    search_fields = ('product__name', 'stock_movement__reason')
+@admin.register(StockMovement)
+class StockMovementAdmin(admin.ModelAdmin):
+    list_display = ('id', 'stock', 'type', 'quantity', 'cost_price', 'reason', 'created_at')
+    list_filter = ('type', 'created_at')
+    search_fields = ('reason', 'stock__product__name')
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
         (None, {
-            'fields': ('stock_movement', 'product', 'quantity', 'unit_price')
+            'fields': ('stock', 'type', 'quantity', 'cost_price', 'reason', 'sale')
         }),
         (_('Timestamps'), {
             'fields': ('created_at', 'updated_at'),

@@ -12,20 +12,24 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'barcode', 'price', 'stock', 'is_active', 'created_at', 'updated_at')
+    list_display = ('name', 'barcode', 'price', 'current_stock', 'is_active', 'created_at', 'updated_at')
     list_filter = ('is_active', 'created_at', 'updated_at')
     search_fields = ('name', 'barcode')
     readonly_fields = ('created_at', 'updated_at')
     inlines = [ProductImageInline]
     fieldsets = (
         (_('Basic Information'), {
-            'fields': ('name', 'barcode', 'price', 'stock', 'is_active')
+            'fields': ('name', 'barcode', 'price', 'is_active')
         }),
         (_('Timestamps'), {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+
+    def current_stock(self, obj):
+        return obj.current_stock
+    current_stock.short_description = 'Stock actual'
 
 
 @admin.register(ProductImage)

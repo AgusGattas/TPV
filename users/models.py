@@ -13,7 +13,18 @@ from django_base.base_utils.base_models import (
 
 
 class User(BaseSoftDeleteModel, AbstractUser):
+    ROLE_CHOICES = (
+        ('admin', 'Administrador'),
+        ('vendedor', 'Vendedor'),
+    )
+    
     objects = BaseUserCustomManager()
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='vendedor',
+        verbose_name="Rol"
+    )
 
     class Meta:
         constraints = [
@@ -28,6 +39,14 @@ class User(BaseSoftDeleteModel, AbstractUser):
                 condition=models.Q(deleted=False),
             ),
         ]
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin' or self.is_superuser
+
+    @property
+    def is_vendedor(self):
+        return self.role == 'vendedor'
 
 
 class Profile(BaseSoftDeleteModel):

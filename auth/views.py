@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
+from rest_framework import serializers
 
 from django.contrib.auth.password_validation import validate_password
 from django.utils.translation import gettext_lazy as _
@@ -16,9 +17,35 @@ from users.models import User, TokenRecovery
 from django_base.base_utils.utils import get_random_string, email_template_sender
 
 
+class PasswordRecoverySendMailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordRecoveryCheckTokenSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField()
+
+
+class PasswordRecoveryConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField()
+    password = serializers.CharField()
+
+
 class PasswordRecoveryViewSet(BaseGenericViewSet):
     queryset = User.objects.all()
+    
+    serializers = {
+        "recovery_send_mail": PasswordRecoverySendMailSerializer,
+        "recovery_check_token": PasswordRecoveryCheckTokenSerializer,
+        "recovery_confirm": PasswordRecoveryConfirmSerializer,
+        "default": PasswordRecoverySendMailSerializer,
+    }
+    
     permissions = {
+        "recovery_send_mail": [AllowAny],
+        "recovery_check_token": [AllowAny],
+        "recovery_confirm": [AllowAny],
         "default": [AllowAny],
     }
 

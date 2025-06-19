@@ -32,7 +32,6 @@ MY_APPS = [
     "users",
     "django_global_places",
     "platform_configurations",
-    "notifications",
     "products",
     "sales",
     "cashbox",

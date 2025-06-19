@@ -8,27 +8,61 @@ from products.models import Product, ProductImage
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ("image",)
+        fields = ["id", "image", "created_at", "updated_at"]
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
+    images = ProductImageSerializer(many=True, read_only=True)
+    stock_status = serializers.ReadOnlyField()
+    current_stock = serializers.ReadOnlyField()
 
     class Meta:
         model = Product
-        fields = (
+        fields = [
             "id",
             "name",
+            "barcode",
             "price",
-            "stock",
+            "cost_price",
+            "current_stock",
+            "min_stock",
+            "stock_status",
             "is_active",
-            "image",
+            "description",
+            "unit",
+            "images",
             "created_at",
             "updated_at",
-        )
+        ]
 
-    def get_image(self, obj):
-        return ProductImageSerializer(obj.images.first(), context=self.context).data[
-            "image"
+
+class ProductCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "barcode",
+            "name",
+            "price",
+            "cost_price",
+            "min_stock",
+            "is_active",
+            "description",
+            "unit",
+        ]
+
+
+class ProductUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            "name",
+            "barcode",
+            "price",
+            "cost_price",
+            "min_stock",
+            "is_active",
+            "description",
+            "unit",
         ]
 
