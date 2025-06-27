@@ -195,6 +195,7 @@ class StockMovementViewSet(
     @action(detail=False, methods=['get'])
     def by_product(self, request):
         """Movimientos de un producto específico"""
+        # Obtener product_id de query parameters o de URL
         product_id = request.query_params.get('product_id')
         
         if not product_id:
@@ -203,6 +204,103 @@ class StockMovementViewSet(
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Validar que el producto existe
+        try:
+            from products.models import Product
+            product = Product.objects.get(id=product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response(
+                {"error": f"Producto con ID {product_id} no existe o no está activo"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         movements = self.get_queryset().filter(stock__product_id=product_id)
         serializer = self.get_serializer(movements, many=True)
-        return Response(serializer.data)
+        
+        return Response({
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "barcode": product.barcode
+            },
+            "movements": serializer.data,
+            "total_movements": movements.count()
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-product/(?P<product_id>[^/.]+)')
+    def by_product_url(self, request, product_id=None):
+        """Movimientos de un producto específico usando URL parameter"""
+        if not product_id:
+            return Response(
+                {"error": "Se requiere el parámetro product_id en la URL"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que el producto existe
+        try:
+            from products.models import Product
+            product = Product.objects.get(id=product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response(
+                {"error": f"Producto con ID {product_id} no existe o no está activo"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        movements = self.get_queryset().filter(stock__product_id=product_id)
+        serializer = self.get_serializer(movements, many=True)
+        
+        return Response({
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "barcode": product.barcode
+            },
+            "movements": serializer.data,
+            "total_movements": movements.count()
+        })
+
+    @action(detail=False, methods=['get'], url_path='stats-by-product/(?P<product_id>[^/.]+)')
+    def stats_by_product(self, request, product_id=None):
+        """Estadísticas de movimientos de un producto específico"""
+        if not product_id:
+            return Response(
+                {"error": "Se requiere el parámetro product_id en la URL"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que el producto existe
+        try:
+            from products.models import Product
+            product = Product.objects.get(id=product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response(
+                {"error": f"Producto con ID {product_id} no existe o no está activo"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        movements = self.get_queryset().filter(stock__product_id=product_id)
+        
+        # Calcular estadísticas
+        stats = {
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "barcode": product.barcode
+            },
+            "total_movements": movements.count(),
+            "ingresos": movements.filter(type='ingreso').count(),
+            "egresos": movements.filter(type='egreso').count(),
+            "devoluciones": movements.filter(type='devolucion').count(),
+            "total_ingresos": movements.filter(type='ingreso').aggregate(
+                total=Sum('quantity')
+            )['total'] or 0,
+            "total_egresos": movements.filter(type='egreso').aggregate(
+                total=Sum('quantity')
+            )['total'] or 0,
+            "total_devoluciones": movements.filter(type='devolucion').aggregate(
+                total=Sum('quantity')
+            )['total'] or 0,
+            "stock_actual": product.current_stock
+        }
+        
+        return Response(stats)

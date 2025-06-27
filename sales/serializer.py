@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from sales.models import Sale, SaleItem
 from products.serializer import ProductListSerializer
+from products.models import Product
+from stock.models import Stock
 
 class SaleItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
@@ -105,6 +107,51 @@ class SaleCreateSerializer(serializers.ModelSerializer):
             }
         }
 
+    def validate_items_data(self, value):
+        """Validar que cada item tenga product_id y quantity, y verificar stock disponible"""
+        if not value:
+            raise serializers.ValidationError("Debe incluir al menos un item")
+        
+        stock_errors = []
+        
+        for index, item in enumerate(value):
+            # Validaciones básicas
+            if 'product_id' not in item:
+                raise serializers.ValidationError("Cada item debe incluir product_id")
+            if 'quantity' not in item:
+                raise serializers.ValidationError("Cada item debe incluir quantity")
+            if item['quantity'] <= 0:
+                raise serializers.ValidationError("La cantidad debe ser mayor a 0")
+            
+            # Validar que el producto existe y está activo
+            try:
+                product = Product.objects.get(id=item['product_id'], is_active=True)
+            except Product.DoesNotExist:
+                stock_errors.append(f"Item {index + 1}: El producto con ID {item['product_id']} no existe o no está activo")
+                continue
+            
+            # Validar stock disponible
+            try:
+                stock = Stock.objects.get(product=product)
+                current_stock = stock.current_quantity
+                
+                if current_stock <= 0:
+                    stock_errors.append(f"Item {index + 1}: {product.name} - Sin stock disponible (stock actual: {current_stock})")
+                elif current_stock < item['quantity']:
+                    stock_errors.append(f"Item {index + 1}: {product.name} - Stock insuficiente (disponible: {current_stock}, solicitado: {item['quantity']})")
+                    
+            except Stock.DoesNotExist:
+                stock_errors.append(f"Item {index + 1}: {product.name} - Sin registro de stock disponible")
+        
+        # Si hay errores de stock, lanzar excepción con todos los errores
+        if stock_errors:
+            raise serializers.ValidationError({
+                "stock_errors": stock_errors,
+                "message": "Hay productos sin stock suficiente para completar la venta"
+            })
+        
+        return value
+
     def create(self, validated_data):
         items_data = validated_data.pop('items_data')
         
@@ -142,21 +189,6 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         # Refrescar la venta para obtener los totales calculados
         sale.refresh_from_db()
         return sale
-
-    def validate_items_data(self, value):
-        """Validar que cada item tenga product_id y quantity"""
-        if not value:
-            raise serializers.ValidationError("Debe incluir al menos un item")
-        
-        for item in value:
-            if 'product_id' not in item:
-                raise serializers.ValidationError("Cada item debe incluir product_id")
-            if 'quantity' not in item:
-                raise serializers.ValidationError("Cada item debe incluir quantity")
-            if item['quantity'] <= 0:
-                raise serializers.ValidationError("La cantidad debe ser mayor a 0")
-        
-        return value
 
 class SaleUpdateSerializer(serializers.ModelSerializer):
     class Meta:

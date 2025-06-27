@@ -15,6 +15,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from sales.filters import SaleFilter
 from sales.serializer import SaleSerializer, SaleCreateSerializer, SaleUpdateSerializer, SaleItemSerializer
 from django_base.base_utils.base_viewsets import BaseGenericViewSet
+from rest_framework.exceptions import ValidationError
 
 # Create your views here.
 
@@ -68,6 +69,54 @@ class SaleViewSet(
             .order_by("-created_at")
         )
 
+    def create(self, request, *args, **kwargs):
+        """Crear una venta con manejo mejorado de errores de stock"""
+        try:
+            return super().create(request, *args, **kwargs)
+        except ValidationError as e:
+            # Manejar errores de validación de stock específicamente
+            if hasattr(e, 'detail') and isinstance(e.detail, dict) and 'items_data' in e.detail:
+                items_data_error = e.detail['items_data']
+                if isinstance(items_data_error, dict) and 'stock_errors' in items_data_error:
+                    return Response({
+                        "error": "Error de stock",
+                        "message": items_data_error.get('message', 'Hay productos sin stock suficiente'),
+                        "stock_errors": items_data_error['stock_errors'],
+                        "details": "Verifique el stock disponible de los productos antes de realizar la venta"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Para otros errores de validación, simplificar el formato
+            error_messages = []
+            if hasattr(e, 'detail') and isinstance(e.detail, dict):
+                for field, errors in e.detail.items():
+                    if isinstance(errors, list):
+                        for error in errors:
+                            error_messages.append(f"{field}: {error}")
+                    else:
+                        error_messages.append(f"{field}: {errors}")
+            else:
+                error_messages.append(str(e.detail))
+            
+            return Response({
+                "error": "Error de validación",
+                "message": "Hay errores en los datos proporcionados",
+                "details": error_messages
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as e:
+            # Manejar errores de validación del modelo
+            return Response({
+                "error": "Error de stock",
+                "message": str(e),
+                "details": "Verifique que todos los productos tengan stock suficiente"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Manejar otros errores inesperados
+            return Response({
+                "error": "Error interno del servidor",
+                "message": "Ocurrió un error inesperado al procesar la venta",
+                "details": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         """Cancelar una venta (soft delete)"""
@@ -113,6 +162,118 @@ class SaleViewSet(
         }
         
         return Response(stats)
+
+    @action(detail=False, methods=['post'])
+    def check_stock(self, request):
+        """Verificar stock disponible para una lista de productos"""
+        items_data = request.data.get('items_data', [])
+        
+        if not items_data:
+            return Response({
+                "error": "Datos requeridos",
+                "message": "Debe proporcionar items_data con la lista de productos"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        stock_check_results = []
+        has_errors = False
+        
+        for index, item in enumerate(items_data):
+            product_id = item.get('product_id')
+            quantity = item.get('quantity', 0)
+            
+            if not product_id:
+                stock_check_results.append({
+                    "item_index": index + 1,
+                    "error": "product_id es requerido"
+                })
+                has_errors = True
+                continue
+            
+            if quantity <= 0:
+                stock_check_results.append({
+                    "item_index": index + 1,
+                    "error": "quantity debe ser mayor a 0"
+                })
+                has_errors = True
+                continue
+            
+            try:
+                from products.models import Product
+                from stock.models import Stock
+                
+                # Verificar que el producto existe y está activo
+                try:
+                    product = Product.objects.get(id=product_id, is_active=True)
+                except Product.DoesNotExist:
+                    stock_check_results.append({
+                        "item_index": index + 1,
+                        "product_id": product_id,
+                        "error": "Producto no existe o no está activo"
+                    })
+                    has_errors = True
+                    continue
+                
+                # Verificar stock disponible
+                try:
+                    stock = Stock.objects.get(product=product)
+                    current_stock = stock.current_quantity
+                    
+                    if current_stock <= 0:
+                        stock_check_results.append({
+                            "item_index": index + 1,
+                            "product_id": product_id,
+                            "product_name": product.name,
+                            "current_stock": current_stock,
+                            "requested_quantity": quantity,
+                            "status": "sin_stock",
+                            "error": f"Sin stock disponible (stock actual: {current_stock})"
+                        })
+                        has_errors = True
+                    elif current_stock < quantity:
+                        stock_check_results.append({
+                            "item_index": index + 1,
+                            "product_id": product_id,
+                            "product_name": product.name,
+                            "current_stock": current_stock,
+                            "requested_quantity": quantity,
+                            "status": "stock_insuficiente",
+                            "error": f"Stock insuficiente (disponible: {current_stock}, solicitado: {quantity})"
+                        })
+                        has_errors = True
+                    else:
+                        stock_check_results.append({
+                            "item_index": index + 1,
+                            "product_id": product_id,
+                            "product_name": product.name,
+                            "current_stock": current_stock,
+                            "requested_quantity": quantity,
+                            "status": "ok",
+                            "available": True
+                        })
+                        
+                except Stock.DoesNotExist:
+                    stock_check_results.append({
+                        "item_index": index + 1,
+                        "product_id": product_id,
+                        "product_name": product.name,
+                        "error": "Sin registro de stock disponible"
+                    })
+                    has_errors = True
+                    
+            except Exception as e:
+                stock_check_results.append({
+                    "item_index": index + 1,
+                    "product_id": product_id,
+                    "error": f"Error al verificar stock: {str(e)}"
+                })
+                has_errors = True
+        
+        return Response({
+            "has_errors": has_errors,
+            "can_proceed": not has_errors,
+            "results": stock_check_results,
+            "message": "Verificación de stock completada" if not has_errors else "Hay productos sin stock suficiente"
+        }, status=status.HTTP_200_OK if not has_errors else status.HTTP_400_BAD_REQUEST)
 
 
 class SaleItemViewSet(

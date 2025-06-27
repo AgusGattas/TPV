@@ -111,12 +111,7 @@ class SaleItem(BaseModel):
         
         # Validar stock disponible antes de guardar
         if self.pk is None:  # Solo validar en creación
-            current_stock = self.product.current_stock
-            if current_stock < self.quantity:
-                raise ValueError(
-                    f"Stock insuficiente para {self.product.name}. "
-                    f"Disponible: {current_stock}, Solicitado: {self.quantity}"
-                )
+            self.validate_stock_availability()
         
         # Calcular subtotal
         self.calculate_subtotal()
@@ -128,6 +123,34 @@ class SaleItem(BaseModel):
         if self.sale.pk:
             self.sale.calculate_totals()
             self.sale.save(update_fields=['subtotal', 'total_discount', 'total_final'])
+
+    def validate_stock_availability(self):
+        """Valida que haya stock suficiente para la venta"""
+        from stock.models import Stock
+        
+        # Verificar que el producto esté activo
+        if not self.product.is_active:
+            raise ValueError(f"El producto '{self.product.name}' no está activo")
+        
+        # Verificar que existe un registro de stock
+        try:
+            stock = Stock.objects.get(product=self.product)
+            current_stock = stock.current_quantity
+        except Stock.DoesNotExist:
+            raise ValueError(f"No hay registro de stock para el producto '{self.product.name}'")
+        
+        # Verificar stock disponible
+        if current_stock <= 0:
+            raise ValueError(
+                f"No hay stock disponible para '{self.product.name}'. "
+                f"Stock actual: {current_stock}"
+            )
+        
+        if current_stock < self.quantity:
+            raise ValueError(
+                f"Stock insuficiente para '{self.product.name}'. "
+                f"Disponible: {current_stock}, Solicitado: {self.quantity}"
+            )
 
     def calculate_subtotal(self):
         """Calcula el subtotal del item"""
