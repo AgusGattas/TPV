@@ -67,12 +67,47 @@ class CashBoxSerializer(serializers.ModelSerializer):
 
 
 class CashBoxCreateSerializer(serializers.ModelSerializer):
+    suggested_initial_cash = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        read_only=True,
+        help_text="Efectivo inicial sugerido basado en la última caja cerrada"
+    )
+
     class Meta:
         model = CashBox
         fields = [
             'user',
             'initial_cash',
+            'suggested_initial_cash',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-llenar initial_cash con el cash_to_keep de la última caja cerrada
+        if not self.instance:  # Solo si es una nueva instancia
+            suggested_cash = CashBox.get_suggested_initial_cash()
+            self.fields['initial_cash'].default = suggested_cash
+            self.fields['initial_cash'].initial = suggested_cash
+
+    def to_representation(self, instance):
+        """Agregar el suggested_initial_cash a la respuesta"""
+        data = super().to_representation(instance)
+        data['suggested_initial_cash'] = CashBox.get_suggested_initial_cash()
+        return data
+
+    def validate(self, data):
+        """Validar que no haya cajas abiertas"""
+        if CashBox.objects.filter(closed_at__isnull=True).exists():
+            raise serializers.ValidationError(
+                "No se puede abrir una nueva caja mientras haya una caja abierta"
+            )
+        
+        # Validar que el efectivo inicial sea positivo
+        if data['initial_cash'] <= 0:
+            raise serializers.ValidationError("El efectivo inicial debe ser mayor a 0")
+        
+        return data
 
 
 class CashBoxCloseSerializer(serializers.ModelSerializer):
@@ -85,7 +120,7 @@ class CashBoxCloseSerializer(serializers.ModelSerializer):
         max_digits=10, 
         decimal_places=2,
         required=False,
-        help_text="Efectivo a mantener en caja (opcional)"
+        help_text="Efectivo a mantener en caja para la próxima apertura (opcional, si no se especifica se mantiene todo el efectivo contado)"
     )
 
     class Meta:
@@ -104,6 +139,30 @@ class CashBoxCloseSerializer(serializers.ModelSerializer):
         if data['counted_cash'] <= 0:
             raise serializers.ValidationError("El efectivo contado debe ser mayor a 0")
         
+        # Validar que cash_to_keep no sea mayor que counted_cash
+        cash_to_keep = data.get('cash_to_keep')
+        if cash_to_keep is not None and cash_to_keep > data['counted_cash']:
+            raise serializers.ValidationError(
+                "El efectivo a mantener no puede ser mayor al efectivo contado"
+            )
+        
+        return data
+
+    def to_representation(self, instance):
+        """Agregar información adicional sobre el cierre"""
+        data = super().to_representation(instance)
+        
+        # Calcular valores si la caja está cerrada
+        if instance.closed_at:
+            data.update({
+                'cash_to_withdraw': instance.cash_to_withdraw,
+                'difference': instance.difference,
+                'closed_at': instance.closed_at,
+                'calculated_cash': instance.calculated_cash,
+                'total_sales': instance.total_sales,
+                'total_movements': instance.total_movements
+            })
+        
         return data
 
 
@@ -120,4 +179,13 @@ class CashMovementCreateSerializer(serializers.ModelSerializer):
     def validate_cashbox(self, value):
         if not value.is_open:
             raise serializers.ValidationError("No se pueden hacer movimientos en una caja cerrada")
-        return value 
+        return value
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("El monto debe ser mayor a 0")
+        return value
+
+    def validate(self, data):
+        # Validaciones adicionales si es necesario
+        return data 

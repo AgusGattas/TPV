@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django_base.base_utils.base_models import BaseModel
 from django.db.models import Sum
+from django.utils import timezone
 from decimal import Decimal
 
 
@@ -59,6 +60,22 @@ class CashBox(BaseModel):
         self.calculated_cash = self.initial_cash + self.total_sales + self.total_movements
         return self.calculated_cash
 
+    @classmethod
+    def get_last_cash_to_keep(cls):
+        """Obtiene el cash_to_keep de la última caja cerrada"""
+        last_closed_cashbox = cls.objects.filter(
+            closed_at__isnull=False
+        ).order_by('-closed_at').first()
+        
+        if last_closed_cashbox and last_closed_cashbox.cash_to_keep:
+            return last_closed_cashbox.cash_to_keep
+        return Decimal('0.00')
+
+    @classmethod
+    def get_suggested_initial_cash(cls):
+        """Obtiene el cash_to_keep sugerido para la nueva caja"""
+        return cls.get_last_cash_to_keep()
+
     def close_cashbox(self, counted_cash, cash_to_keep=None):
         """Cierra la caja y calcula diferencias"""
         if not self.is_open:
@@ -67,9 +84,14 @@ class CashBox(BaseModel):
         self.calculate_cash()
         self.counted_cash = counted_cash
         self.difference = self.counted_cash - self.calculated_cash
-        self.cash_to_keep = cash_to_keep or self.counted_cash
-        self.cash_to_withdraw = self.counted_cash - (cash_to_keep or self.counted_cash)
-        self.closed_at = models.timezone.now()
+        
+        # Si no se especifica cash_to_keep, usar el counted_cash completo
+        if cash_to_keep is None:
+            cash_to_keep = self.counted_cash
+        
+        self.cash_to_keep = cash_to_keep
+        self.cash_to_withdraw = self.counted_cash - cash_to_keep
+        self.closed_at = timezone.now()
         self.save()
 
     def get_summary(self):
@@ -83,9 +105,19 @@ class CashBox(BaseModel):
             'calculated_cash': self.calculate_cash(),
             'counted_cash': self.counted_cash,
             'difference': self.difference,
+            'cash_to_keep': self.cash_to_keep,
+            'cash_to_withdraw': self.cash_to_withdraw,
             'opened_at': self.opened_at,
             'closed_at': self.closed_at,
         }
+
+    def save(self, *args, **kwargs):
+        # Validar que no haya cajas abiertas al crear una nueva
+        if not self.pk and self.closed_at is None:  # Nueva caja abierta
+            if CashBox.objects.filter(closed_at__isnull=True).exists():
+                raise ValueError("No se puede abrir una nueva caja mientras haya una caja abierta")
+        
+        super().save(*args, **kwargs)
 
 
 class CashMovement(BaseModel):

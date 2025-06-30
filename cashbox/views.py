@@ -9,6 +9,7 @@ from django_filters import rest_framework as filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import serializers
 from django.db.models import Sum, Count
 from cashbox.models import CashBox, CashMovement
 from rest_framework.permissions import AllowAny
@@ -21,6 +22,7 @@ from cashbox.serializer import (
 )
 from cashbox.filters import CashBoxFilter, CashMovementFilter
 from django_base.base_utils.base_viewsets import BaseGenericViewSet
+from users.models import User
 
 # Create your views here.
 
@@ -182,7 +184,25 @@ class CashMovementViewSet(
         )
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Asignar el usuario actual si está autenticado, sino usar un usuario por defecto
+        if self.request.user.is_authenticated:
+            serializer.save(user=self.request.user)
+        else:
+            # Usar el primer usuario disponible o crear uno por defecto
+            try:
+                default_user = User.objects.first()
+                if not default_user:
+                    # Crear un usuario por defecto si no existe ninguno
+                    default_user = User.objects.create_user(
+                        email="vendedor@default.com",
+                        password="default123",
+                        first_name="Vendedor",
+                        last_name="Default",
+                        role="vendedor"
+                    )
+                serializer.save(user=default_user)
+            except Exception as e:
+                raise serializers.ValidationError(f"No se pudo asignar un usuario: {str(e)}")
 
     @action(detail=False, methods=['get'])
     def by_cashbox(self, request, cashbox_id=None):
