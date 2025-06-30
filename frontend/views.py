@@ -1,0 +1,779 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Sum, Count, Q, F
+from django.utils import timezone
+from django.core.paginator import Paginator
+from datetime import datetime, timedelta
+import json
+from django.contrib.auth import authenticate, login
+
+from products.models import Product
+from sales.models import Sale, SaleItem
+from stock.models import Stock, StockMovement
+from cashbox.models import CashBox, CashMovement
+from users.models import User
+
+
+@login_required
+def dashboard(request):
+    """Dashboard principal con estadísticas y resumen"""
+    
+    # Estadísticas generales
+    total_products = Product.objects.filter(is_active=True).count()
+    total_sales_today = Sale.objects.filter(
+        created_at__date=timezone.now().date(),
+        is_active=True
+    ).count()
+    
+    # Ventas de hoy
+    sales_today = Sale.objects.filter(
+        created_at__date=timezone.now().date(),
+        is_active=True
+    )
+    total_revenue_today = sales_today.aggregate(
+        total=Sum('total_final')
+    )['total'] or 0
+    
+    # Productos con stock bajo
+    low_stock_products = Product.objects.filter(
+        is_active=True,
+        stock_info__current_quantity__lte=F('min_stock')
+    ).count()
+    
+    # Productos sin stock
+    out_of_stock_products = Product.objects.filter(
+        is_active=True,
+        stock_info__current_quantity=0
+    ).count()
+    
+    # Caja actual
+    current_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
+    
+    # Ventas recientes
+    recent_sales = Sale.objects.filter(
+        is_active=True
+    ).select_related('user', 'cashbox').order_by('-created_at')[:10]
+    
+    # Movimientos de stock recientes
+    recent_stock_movements = StockMovement.objects.select_related(
+        'stock__product'
+    ).order_by('-created_at')[:10]
+    
+    # Gráfico de ventas de los últimos 7 días
+    sales_last_7_days = []
+    for i in range(7):
+        date = timezone.now().date() - timedelta(days=i)
+        daily_sales = Sale.objects.filter(
+            created_at__date=date,
+            is_active=True
+        ).aggregate(total=Sum('total_final'))['total'] or 0
+        sales_last_7_days.append({
+            'date': date.strftime('%d/%m'),
+            'total': float(daily_sales)
+        })
+    sales_last_7_days.reverse()
+    
+    context = {
+        'total_products': total_products,
+        'total_sales_today': total_sales_today,
+        'total_revenue_today': total_revenue_today,
+        'low_stock_products': low_stock_products,
+        'out_of_stock_products': out_of_stock_products,
+        'current_cashbox': current_cashbox,
+        'recent_sales': recent_sales,
+        'recent_stock_movements': recent_stock_movements,
+        'sales_last_7_days': sales_last_7_days,
+    }
+    
+    return render(request, 'frontend/dashboard.html', context)
+
+
+@login_required
+def products_list(request):
+    """Lista de productos con búsqueda y filtros"""
+    
+    products = Product.objects.filter(is_active=True).select_related('stock_info')
+    
+    # Búsqueda
+    search = request.GET.get('search', '')
+    if search:
+        products = products.filter(
+            Q(name__icontains=search) |
+            Q(barcode__icontains=search) |
+            Q(description__icontains=search)
+        )
+    
+    # Filtros
+    stock_filter = request.GET.get('stock_filter', '')
+    if stock_filter == 'low':
+        products = products.filter(stock_info__current_quantity__lte=F('min_stock'))
+    elif stock_filter == 'out':
+        products = products.filter(stock_info__current_quantity=0)
+    
+    # Ordenamiento
+    order_by = request.GET.get('order_by', '-created_at')
+    products = products.order_by(order_by)
+    
+    context = {
+        'products': products,
+        'search': search,
+        'stock_filter': stock_filter,
+        'order_by': order_by,
+    }
+    
+    return render(request, 'frontend/products/list.html', context)
+
+
+@login_required
+def product_detail(request, pk):
+    """Detalle de un producto"""
+    
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    
+    # Movimientos de stock del producto
+    stock_movements = StockMovement.objects.filter(
+        stock__product=product
+    ).order_by('-created_at')[:20]
+    
+    # Ventas recientes del producto
+    recent_sales = SaleItem.objects.filter(
+        product=product
+    ).select_related('sale').order_by('-sale__created_at')[:10]
+    
+    context = {
+        'product': product,
+        'stock_movements': stock_movements,
+        'recent_sales': recent_sales,
+    }
+    
+    return render(request, 'frontend/products/detail.html', context)
+
+
+@login_required
+def product_create(request):
+    """Crear nuevo producto"""
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario HTML
+            name = request.POST.get('name')
+            price = request.POST.get('price')
+            cost_price = request.POST.get('cost_price', 0)
+            min_stock = request.POST.get('min_stock', 0)
+            description = request.POST.get('description', '')
+            unit = request.POST.get('unit', 'unidad')
+            initial_stock = request.POST.get('initial_stock', 0)
+            
+            # Validaciones básicas
+            if not name or not price:
+                messages.error(request, 'El nombre y precio son obligatorios')
+                return render(request, 'frontend/products/create.html')
+            
+            # Crear el producto
+            product = Product.objects.create(
+                name=name,
+                price=price,
+                cost_price=cost_price,
+                min_stock=min_stock,
+                description=description,
+                unit=unit
+            )
+            
+            # Crear registro de stock inicial
+            if initial_stock and float(initial_stock) > 0:
+                stock, created = Stock.objects.get_or_create(product=product)
+                stock.add_stock(
+                    quantity=int(initial_stock),
+                    cost_price=float(cost_price) if cost_price else 0,
+                    reason="Stock inicial"
+                )
+            
+            messages.success(request, f'Producto "{product.name}" creado exitosamente')
+            return redirect('frontend:products_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear el producto: {str(e)}')
+            return render(request, 'frontend/products/create.html')
+    
+    return render(request, 'frontend/products/create.html')
+
+
+@login_required
+def product_edit(request, pk):
+    """Editar producto"""
+    
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario HTML
+            name = request.POST.get('name')
+            price = request.POST.get('price')
+            cost_price = request.POST.get('cost_price', 0)
+            min_stock = request.POST.get('min_stock', 0)
+            description = request.POST.get('description', '')
+            unit = request.POST.get('unit', 'unidad')
+            
+            # Validaciones básicas
+            if not name or not price:
+                messages.error(request, 'El nombre y precio son obligatorios')
+                return render(request, 'frontend/products/edit.html', {'product': product})
+            
+            # Actualizar el producto
+            product.name = name
+            product.price = price
+            product.cost_price = cost_price
+            product.min_stock = min_stock
+            product.description = description
+            product.unit = unit
+            product.save()
+            
+            messages.success(request, f'Producto "{product.name}" actualizado exitosamente')
+            return redirect('frontend:products_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el producto: {str(e)}')
+            return render(request, 'frontend/products/edit.html', {'product': product})
+    
+    context = {
+        'product': product,
+    }
+    
+    return render(request, 'frontend/products/edit.html', context)
+
+
+@login_required
+def sales_list(request):
+    """Lista de ventas"""
+    
+    sales = Sale.objects.filter(is_active=True).select_related('user', 'cashbox')
+    
+    # Filtros
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    payment_method = request.GET.get('payment_method', '')
+    
+    if date_from:
+        sales = sales.filter(created_at__date__gte=date_from)
+    if date_to:
+        sales = sales.filter(created_at__date__lte=date_to)
+    if payment_method:
+        sales = sales.filter(payment_method=payment_method)
+    
+    # Ordenamiento
+    order_by = request.GET.get('order_by', '-created_at')
+    sales = sales.order_by(order_by)
+    
+    # Paginación
+    paginator = Paginator(sales, 12)  # 12 ventas por página
+    page_number = request.GET.get('page')
+    sales = paginator.get_page(page_number)
+    
+    context = {
+        'sales': sales,
+        'date_from': date_from,
+        'date_to': date_to,
+        'payment_method': payment_method,
+        'order_by': order_by,
+    }
+    
+    return render(request, 'frontend/sales/list.html', context)
+
+
+@login_required
+def sale_detail(request, pk):
+    """Detalle de una venta"""
+    
+    sale = get_object_or_404(Sale, pk=pk, is_active=True)
+    
+    context = {
+        'sale': sale,
+    }
+    
+    return render(request, 'frontend/sales/detail.html', context)
+
+
+@login_required
+def sale_create(request):
+    """Crear nueva venta"""
+    
+    # Verificar que haya una caja abierta
+    current_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
+    if not current_cashbox:
+        messages.error(request, 'No hay una caja abierta. Debes abrir una caja antes de realizar ventas.')
+        return redirect('cashbox_list')
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Crear la venta
+            sale = Sale.objects.create(
+                user=request.user,
+                cashbox=current_cashbox,
+                payment_method=data['payment_method'],
+                notes=data.get('notes', '')
+            )
+            
+            # Crear los items de la venta
+            for item_data in data['items']:
+                product = Product.objects.get(id=item_data['product_id'])
+                
+                SaleItem.objects.create(
+                    sale=sale,
+                    product=product,
+                    quantity=item_data['quantity'],
+                    unit_price=item_data.get('unit_price', product.price),
+                    discount_percentage=item_data.get('discount_percentage', 0)
+                )
+                
+                # Actualizar stock
+                stock = product.stock_info
+                stock.remove_stock(
+                    quantity=item_data['quantity'],
+                    reason=f"Venta #{sale.id}"
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Venta creada exitosamente',
+                'sale_id': sale.id,
+                'ticket_number': sale.ticket_number
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    
+    # Obtener productos para el formulario
+    products = Product.objects.filter(
+        is_active=True,
+        stock_info__current_quantity__gt=0
+    ).select_related('stock_info')
+    
+    context = {
+        'current_cashbox': current_cashbox,
+        'products': products,
+    }
+    
+    return render(request, 'frontend/sales/create.html', context)
+
+
+@login_required
+def stock_list(request):
+    """Lista de stock con movimientos"""
+    
+    stocks = Stock.objects.select_related('product').all()
+    
+    # Filtros
+    search = request.GET.get('search', '')
+    if search:
+        stocks = stocks.filter(
+            Q(product__name__icontains=search) |
+            Q(product__barcode__icontains=search)
+        )
+    
+    stock_filter = request.GET.get('stock_filter', '')
+    if stock_filter == 'low':
+        stocks = stocks.filter(current_quantity__lte=F('product__min_stock'))
+    elif stock_filter == 'out':
+        stocks = stocks.filter(current_quantity=0)
+    
+    context = {
+        'stocks': stocks,
+        'search': search,
+        'stock_filter': stock_filter,
+    }
+    
+    return render(request, 'frontend/stock/list.html', context)
+
+
+@login_required
+def stock_movements(request):
+    """Movimientos de stock"""
+    
+    movements = StockMovement.objects.select_related(
+        'stock__product', 'sale'
+    ).all()
+    
+    # Filtros
+    movement_type = request.GET.get('type', '')
+    if movement_type:
+        movements = movements.filter(type=movement_type)
+    
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    if date_from:
+        movements = movements.filter(created_at__date__gte=date_from)
+    if date_to:
+        movements = movements.filter(created_at__date__lte=date_to)
+    
+    movements = movements.order_by('-created_at')
+    
+    context = {
+        'movements': movements,
+        'movement_type': movement_type,
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+    
+    return render(request, 'frontend/stock/movements.html', context)
+
+
+@login_required
+def add_stock(request, pk):
+    """Agregar stock a un producto"""
+    
+    stock = get_object_or_404(Stock, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            stock.add_stock(
+                quantity=data['quantity'],
+                cost_price=data['cost_price'],
+                reason=data.get('reason', 'Compra')
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Stock agregado exitosamente',
+                'new_quantity': stock.current_quantity
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    
+    context = {
+        'stock': stock,
+    }
+    
+    return render(request, 'frontend/stock/add_stock.html', context)
+
+
+@login_required
+def cashbox_list(request):
+    """Lista de cajas"""
+    
+    cashboxes = CashBox.objects.select_related('user').all()
+    
+    context = {
+        'cashboxes': cashboxes,
+    }
+    
+    return render(request, 'frontend/cashbox/list.html', context)
+
+
+@login_required
+def cashbox_detail(request, pk):
+    """Detalle de una caja"""
+    
+    cashbox = get_object_or_404(CashBox, pk=pk)
+    
+    # Movimientos de la caja
+    movements = CashMovement.objects.filter(cashbox=cashbox).order_by('-created_at')
+    
+    # Ventas de la caja
+    sales = Sale.objects.filter(cashbox=cashbox, is_active=True).order_by('-created_at')
+    
+    context = {
+        'cashbox': cashbox,
+        'movements': movements,
+        'sales': sales,
+    }
+    
+    return render(request, 'frontend/cashbox/detail.html', context)
+
+
+@login_required
+def open_cashbox(request):
+    """Abrir nueva caja"""
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Verificar que no haya cajas abiertas
+            if CashBox.objects.filter(closed_at__isnull=True).exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Ya hay una caja abierta'
+                }, status=400)
+            
+            cashbox = CashBox.objects.create(
+                user=request.user,
+                initial_cash=data['initial_cash']
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Caja abierta exitosamente',
+                'cashbox_id': cashbox.id
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    
+    # Obtener sugerencia de efectivo inicial
+    suggested_cash = CashBox.get_suggested_initial_cash()
+    
+    context = {
+        'suggested_cash': suggested_cash,
+    }
+    
+    return render(request, 'frontend/cashbox/open.html', context)
+
+
+@login_required
+def close_cashbox(request, pk):
+    """Cerrar caja"""
+    
+    cashbox = get_object_or_404(CashBox, pk=pk)
+    
+    if not cashbox.is_open:
+        messages.error(request, 'Esta caja ya está cerrada')
+        return redirect('cashbox_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            cashbox.close_cashbox(
+                counted_cash=data['counted_cash'],
+                cash_to_keep=data.get('cash_to_keep')
+            )
+            
+            messages.success(request, 'Caja cerrada exitosamente')
+            return redirect('cashbox_detail', pk=pk)
+            
+        except Exception as e:
+            messages.error(request, str(e))
+    
+    context = {
+        'cashbox': cashbox,
+    }
+    
+    return render(request, 'frontend/cashbox/close.html', context)
+
+
+@login_required
+def add_cash_movement(request, pk):
+    """Agregar movimiento de caja"""
+    
+    cashbox = get_object_or_404(CashBox, pk=pk)
+    
+    if not cashbox.is_open:
+        messages.error(request, 'No se pueden hacer movimientos en una caja cerrada')
+        return redirect('cashbox_detail', pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            CashMovement.objects.create(
+                cashbox=cashbox,
+                user=request.user,
+                type=data['type'],
+                amount=data['amount'],
+                reason=data['reason']
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Movimiento agregado exitosamente'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    
+    context = {
+        'cashbox': cashbox,
+    }
+    
+    return render(request, 'frontend/cashbox/add_movement.html', context)
+
+
+@login_required
+def users_list(request):
+    """Lista de usuarios (solo para administradores)"""
+    
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    users = User.objects.filter(is_active=True)
+    
+    context = {
+        'users': users,
+    }
+    
+    return render(request, 'frontend/users/list.html', context)
+
+
+@login_required
+def reports(request):
+    """Reportes (solo para administradores)"""
+    
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    # Filtros de fecha
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    # Ventas por período
+    sales_period = Sale.objects.filter(
+        created_at__date__range=[date_from, date_to],
+        is_active=True
+    )
+    
+    total_sales = sales_period.count()
+    total_revenue = sales_period.aggregate(total=Sum('total_final'))['total'] or 0
+    
+    # Ventas por método de pago
+    sales_by_payment = sales_period.values('payment_method').annotate(
+        count=Count('id'),
+        total=Sum('total_final')
+    )
+    
+    # Productos más vendidos
+    top_products = SaleItem.objects.filter(
+        sale__created_at__date__range=[date_from, date_to],
+        sale__is_active=True
+    ).values('product__name').annotate(
+        total_quantity=Sum('quantity'),
+        total_revenue=Sum('subtotal')
+    ).order_by('-total_quantity')[:10]
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_sales': total_sales,
+        'total_revenue': total_revenue,
+        'sales_by_payment': sales_by_payment,
+        'top_products': top_products,
+    }
+    
+    return render(request, 'frontend/reports/index.html', context)
+
+
+@login_required
+def profile(request):
+    """Perfil del usuario"""
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            user = request.user
+            user.first_name = data.get('first_name', '')
+            user.last_name = data.get('last_name', '')
+            user.email = data.get('email', '')
+            user.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Perfil actualizado exitosamente'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    
+    return render(request, 'frontend/profile.html')
+
+
+# APIs para AJAX
+@login_required
+def api_search_products(request):
+    """API para buscar productos por código de barras o nombre"""
+    
+    search = request.GET.get('search', '')
+    if not search:
+        return JsonResponse({'products': []})
+    
+    products = Product.objects.filter(
+        Q(name__icontains=search) | Q(barcode__icontains=search),
+        is_active=True
+    ).select_related('stock_info')[:10]
+    
+    products_data = []
+    for product in products:
+        products_data.append({
+            'id': product.id,
+            'name': product.name,
+            'barcode': product.barcode,
+            'price': float(product.price),
+            'stock': product.current_stock,
+            'unit': product.unit,
+        })
+    
+    return JsonResponse({'products': products_data})
+
+
+@login_required
+def api_product_stock(request, pk):
+    """API para obtener stock de un producto"""
+    
+    product = get_object_or_404(Product, pk=pk)
+    
+    return JsonResponse({
+        'current_stock': product.current_stock,
+        'min_stock': product.min_stock,
+        'stock_status': product.stock_status,
+    })
+
+
+@login_required
+def api_product_by_barcode(request, barcode):
+    """API para buscar producto por código de barras"""
+    
+    try:
+        product = Product.objects.get(barcode=barcode, is_active=True)
+        return JsonResponse({
+            'id': product.id,
+            'name': product.name,
+            'barcode': product.barcode,
+            'price': float(product.price),
+            'stock': product.current_stock,
+            'unit': product.unit,
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({'error': 'Producto no encontrado'}, status=404)
+
+
+def login_view(request):
+    """Vista de login para el frontend"""
+    if request.user.is_authenticated:
+        return redirect('frontend:dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return redirect('frontend:dashboard')
+        else:
+            messages.error(request, 'Usuario o contraseña incorrectos')
+    
+    return render(request, 'frontend/login.html') 

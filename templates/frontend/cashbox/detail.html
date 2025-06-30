@@ -1,0 +1,397 @@
+{% extends 'frontend/base.html' %}
+
+{% block page_title %}Caja #{{ cashbox.id }}{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .cashbox-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .cashbox-info-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    
+    .movement-row {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .movement-row:hover {
+        background: #e9ecef;
+    }
+    
+    .sale-row {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .sale-row:hover {
+        background: #e9ecef;
+    }
+    
+    .movement-type {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .movement-ingreso {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .movement-egreso {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .status-open {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-closed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .balance-section {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Detalle de Caja</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'frontend:cashbox_list' %}">Cajas</a></li>
+                    <li class="breadcrumb-item active">Caja #{{ cashbox.id }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'frontend:cashbox_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            {% if not cashbox.closed_at %}
+                <a href="{% url 'frontend:close_cashbox' cashbox.id %}" class="btn btn-danger">
+                    <i class="fas fa-lock me-2"></i>Cerrar Caja
+                </a>
+                <a href="{% url 'frontend:add_cash_movement' cashbox.id %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Agregar Movimiento
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información de la caja -->
+    <div class="cashbox-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">Caja #{{ cashbox.id }}</h2>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-user me-2"></i>
+                    {{ cashbox.user.get_full_name|default:cashbox.user.username }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="h3 mb-0">
+                    <span class="status-badge {% if cashbox.closed_at %}status-closed{% else %}status-open{% endif %}">
+                        {% if cashbox.closed_at %}
+                            <i class="fas fa-lock me-1"></i>Cerrada
+                        {% else %}
+                            <i class="fas fa-unlock me-1"></i>Abierta
+                        {% endif %}
+                    </span>
+                </div>
+                <small class="opacity-75">
+                    {% if cashbox.closed_at %}
+                        Cerrada: {{ cashbox.closed_at|date:"d/m/Y H:i" }}
+                    {% else %}
+                        Abierta: {{ cashbox.opened_at|date:"d/m/Y H:i" }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Movimientos de caja -->
+        <div class="col-lg-8">
+            <div class="cashbox-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    Movimientos de Caja
+                </h5>
+                
+                {% if movements %}
+                    {% for movement in movements %}
+                    <div class="movement-row">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <div class="fw-bold">{{ movement.reason }}</div>
+                                <div class="text-muted small">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ movement.user.get_full_name|default:movement.user.username }}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="movement-type movement-{{ movement.type }}">
+                                    {% if movement.type == 'ingreso' %}
+                                        <i class="fas fa-arrow-down me-1"></i>Ingreso
+                                    {% else %}
+                                        <i class="fas fa-arrow-up me-1"></i>Egreso
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="fw-bold {% if movement.type == 'ingreso' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if movement.type == 'ingreso' %}+{% else %}-{% endif %}${{ movement.amount|floatformat:2 }}
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="text-muted small">{{ movement.created_at|date:"H:i" }}</div>
+                                <div class="text-muted small">{{ movement.created_at|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-exchange-alt fa-2x mb-2"></i>
+                        <p>No hay movimientos registrados</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Ventas de la caja -->
+            <div class="cashbox-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Ventas de la Caja
+                </h5>
+                
+                {% if sales %}
+                    {% for sale in sales %}
+                    <div class="sale-row">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <div class="fw-bold">
+                                    <a href="{% url 'frontend:sale_detail' sale.id %}" class="text-decoration-none">
+                                        Ticket #{{ sale.ticket_number }}
+                                    </a>
+                                </div>
+                                <div class="text-muted small">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ sale.user.get_full_name|default:sale.user.username }}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-primary">
+                                    {% if sale.payment_method == 'efectivo' %}
+                                        <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                                    {% elif sale.payment_method == 'debito' %}
+                                        <i class="fas fa-credit-card me-1"></i>Débito
+                                    {% elif sale.payment_method == 'transferencia' %}
+                                        <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                                    {% else %}
+                                        {{ sale.payment_method|title }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="fw-bold text-success">${{ sale.total_final|floatformat:2 }}</div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="text-muted small">{{ sale.created_at|date:"H:i" }}</div>
+                                <div class="text-muted small">{{ sale.created_at|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                        <p>No hay ventas registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Resumen y estadísticas -->
+        <div class="col-lg-4">
+            <!-- Balance actual -->
+            <div class="balance-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-calculator me-2"></i>
+                    Balance Actual
+                </h5>
+                
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Saldo Inicial</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">${{ cashbox.initial_amount|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Ingresos</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">+${{ cashbox.total_income|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Egresos</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">-${{ cashbox.total_expenses|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <hr class="border-white">
+                
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Balance Final</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="h4 mb-0">${{ cashbox.current_balance|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="cashbox-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estadísticas
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Total Ventas</div>
+                        <div class="fw-bold">{{ sales.count }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Total Movimientos</div>
+                        <div class="fw-bold">{{ movements.count }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Ingresos por Ventas</div>
+                        <div class="fw-bold text-success">${{ cashbox.sales_income|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Otros Ingresos</div>
+                        <div class="fw-bold text-success">${{ cashbox.other_income|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Promedio por Venta</div>
+                        <div class="fw-bold">
+                            {% if sales.count > 0 %}
+                                ${{ cashbox.average_sale|floatformat:2 }}
+                            {% else %}
+                                $0.00
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Tiempo Abierta</div>
+                        <div class="fw-bold">
+                            {% if cashbox.closed_at %}
+                                {{ cashbox.duration_hours }}h {{ cashbox.duration_minutes }}m
+                            {% else %}
+                                {{ cashbox.current_duration_hours }}h {{ cashbox.current_duration_minutes }}m
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="cashbox-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Información Adicional
+                </h5>
+                
+                <table class="table table-borderless">
+                    <tr>
+                        <td class="text-muted">Fecha de Apertura:</td>
+                        <td>{{ cashbox.opened_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if cashbox.closed_at %}
+                    <tr>
+                        <td class="text-muted">Fecha de Cierre:</td>
+                        <td>{{ cashbox.closed_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td class="text-muted">Responsable:</td>
+                        <td>{{ cashbox.user.get_full_name|default:cashbox.user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ID de Caja:</td>
+                        <td>#{{ cashbox.id }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %} 

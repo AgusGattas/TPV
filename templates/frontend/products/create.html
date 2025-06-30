@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nuevo Producto - TodoBrilla{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .image-preview {
+        width: 100%;
+        height: 200px;
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-size: cover;
+        background-position: center;
+        transition: all 0.3s ease;
+    }
+    
+    .image-preview:hover {
+        border-color: #0d6efd;
+    }
+    
+    .image-preview.has-image {
+        border-style: solid;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Nuevo Producto</h1>
+        <a href="{% url 'frontend:products_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="form-container">
+                <form id="productForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Información básica -->
+                        <div class="col-md-8">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Información Básica
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nombre del Producto *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="barcode" class="form-label">Código de Barras</label>
+                                        <input type="text" class="form-control" id="barcode" name="barcode" 
+                                               placeholder="Se generará automáticamente si se deja vacío">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="unit" class="form-label">Unidad de Medida</label>
+                                        <select class="form-select" id="unit" name="unit">
+                                            <option value="unidad">Unidad</option>
+                                            <option value="kg">Kilogramo</option>
+                                            <option value="litro">Litro</option>
+                                            <option value="metro">Metro</option>
+                                            <option value="par">Par</option>
+                                            <option value="docena">Docena</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="price" class="form-label">Precio de Venta *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="price" name="price" 
+                                                   step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="cost_price" class="form-label">Precio de Costo</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="cost_price" name="cost_price" 
+                                                   step="0.01" min="0" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="min_stock" class="form-label">Stock Mínimo</label>
+                                        <input type="number" class="form-control" id="min_stock" name="min_stock" 
+                                               min="0" value="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="initial_stock" class="form-label">Stock Inicial</label>
+                                        <input type="number" class="form-control" id="initial_stock" name="initial_stock" 
+                                               min="0" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                          placeholder="Descripción opcional del producto"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Imagen del producto -->
+                        <div class="col-md-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-image me-2"></i>
+                                Imagen del Producto
+                            </h5>
+                            
+                            <div class="image-preview" id="imagePreview">
+                                <div class="text-center">
+                                    <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted small">Haz clic para seleccionar una imagen</p>
+                                </div>
+                            </div>
+                            
+                            <input type="file" id="imageInput" name="image" accept="image/*" style="display: none;">
+                            
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="document.getElementById('imageInput').click()">
+                                    <i class="fas fa-upload me-2"></i>Seleccionar Imagen
+                                </button>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Máximo 3MB. Formatos: JPG, PNG, GIF
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'frontend:products_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Producto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview de imagen
+document.getElementById('imageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.style.backgroundImage = `url(${e.target.result})`;
+            preview.classList.add('has-image');
+            preview.innerHTML = `
+                <div class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage()">
+                        <i class="fas fa-trash me-1"></i>Eliminar
+                    </button>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    document.getElementById('imageInput').value = '';
+    const preview = document.getElementById('imagePreview');
+    preview.style.backgroundImage = '';
+    preview.classList.remove('has-image');
+    preview.innerHTML = `
+        <div class="text-center">
+            <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+            <p class="text-muted small">Haz clic para seleccionar una imagen</p>
+        </div>
+    `;
+}
+
+// Click en preview para seleccionar imagen
+document.getElementById('imagePreview').addEventListener('click', function() {
+    if (!this.classList.contains('has-image')) {
+        document.getElementById('imageInput').click();
+    }
+});
+
+// Envío del formulario
+document.getElementById('productForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const form = this;
+    
+    // Agregar campos del formulario
+    formData.append('name', form.name.value);
+    formData.append('barcode', form.barcode.value);
+    formData.append('price', form.price.value);
+    formData.append('cost_price', form.cost_price.value);
+    formData.append('min_stock', form.min_stock.value);
+    formData.append('initial_stock', form.initial_stock.value);
+    formData.append('unit', form.unit.value);
+    formData.append('description', form.description.value);
+    
+    // Agregar imagen si existe
+    const imageFile = document.getElementById('imageInput').files[0];
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+    
+    // Mostrar loading
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    submitBtn.disabled = true;
+    
+    // Enviar datos
+    fetch('{% url "frontend:product_create" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.querySelector('.main-content').insertAdjacentHTML('afterbegin', alertHtml);
+            
+            // Redirigir al detalle del producto
+            setTimeout(() => {
+                window.location.href = `/products/${data.product_id}/`;
+            }, 1500);
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        // Mostrar error
+        const alertHtml = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.querySelector('.main-content').insertAdjacentHTML('afterbegin', alertHtml);
+        
+        // Restaurar botón
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Validación en tiempo real
+document.getElementById('price').addEventListener('input', function() {
+    if (this.value < 0) {
+        this.setCustomValidity('El precio no puede ser negativo');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('cost_price').addEventListener('input', function() {
+    if (this.value < 0) {
+        this.setCustomValidity('El precio de costo no puede ser negativo');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('min_stock').addEventListener('input', function() {
+    if (this.value < 0) {
+        this.setCustomValidity('El stock mínimo no puede ser negativo');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('initial_stock').addEventListener('input', function() {
+    if (this.value < 0) {
+        this.setCustomValidity('El stock inicial no puede ser negativo');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %} 

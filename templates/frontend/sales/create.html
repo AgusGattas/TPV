@@ -1,0 +1,594 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Nueva Venta{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .sale-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .product-search {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .cart-item {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .cart-item:hover {
+        background: #e9ecef;
+    }
+    
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .quantity-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: none;
+        background: #0d6efd;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .quantity-btn:hover {
+        background: #0b5ed7;
+        transform: scale(1.1);
+    }
+    
+    .quantity-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+    }
+    
+    .search-results {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        background: white;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .search-result-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .search-result-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+    
+    .barcode-scanner {
+        background: #e9ecef;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+{% csrf_token %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Nueva Venta</h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'frontend:sales_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            <button type="button" class="btn btn-outline-info" onclick="printTicket()">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel izquierdo - Productos y carrito -->
+        <div class="col-lg-8">
+            <div class="sale-container p-4">
+                <!-- Información de la caja -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-cash-register me-2"></i>
+                    <strong>Caja:</strong> {{ current_cashbox.user.get_full_name|default:current_cashbox.user.username }}
+                    <span class="ms-3">
+                        <i class="fas fa-clock me-1"></i>
+                        Abierta: {{ current_cashbox.opened_at|date:"H:i" }}
+                    </span>
+                </div>
+
+                <!-- Búsqueda de productos -->
+                <div class="product-search">
+                    <h5 class="mb-3">
+                        <i class="fas fa-search me-2"></i>
+                        Buscar Productos
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="position-relative">
+                                <input type="text" class="form-control form-control-lg" id="productSearch" 
+                                       placeholder="Buscar por nombre o código de barras...">
+                                <div class="search-results" id="searchResults"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="focusBarcodeScanner()">
+                                <i class="fas fa-barcode me-2"></i>Escanear Código
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Escáner de código de barras -->
+                    <div class="barcode-scanner" id="barcodeScanner" style="display: none;">
+                        <h6 class="mb-2">Escáner de Código de Barras</h6>
+                        <input type="text" class="form-control" id="barcodeInput" 
+                               placeholder="Coloca el cursor aquí y escanea el código...">
+                        <small class="text-muted">Presiona Enter para buscar</small>
+                    </div>
+                </div>
+
+                <!-- Carrito de compras -->
+                <div class="cart-section">
+                    <h5 class="mb-3">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Carrito de Compras
+                    </h5>
+                    
+                    <div id="cartItems">
+                        <!-- Los items del carrito se agregarán aquí dinámicamente -->
+                    </div>
+                    
+                    <div id="emptyCart" class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Carrito vacío</h5>
+                        <p class="text-muted">Busca productos para agregarlos al carrito</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel derecho - Resumen y pago -->
+        <div class="col-lg-4">
+            <div class="summary-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-receipt me-2"></i>
+                    Resumen de Venta
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Subtotal</div>
+                        <div class="h4 mb-0" id="subtotal">$0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-white-50 small">Descuentos</div>
+                        <div class="h4 mb-0" id="totalDiscount">$0</div>
+                    </div>
+                </div>
+                
+                <hr class="border-white">
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="text-white-50 small">Total</div>
+                        <div class="h2 mb-0" id="totalFinal">$0</div>
+                    </div>
+                </div>
+                
+                <!-- Método de pago -->
+                <div class="mb-3">
+                    <label class="form-label text-white">Método de Pago</label>
+                    <select class="form-select" id="paymentMethod">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="debito">Débito</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+                
+                <!-- Notas -->
+                <div class="mb-4">
+                    <label class="form-label text-white">Notas (opcional)</label>
+                    <textarea class="form-control" id="notes" rows="2" 
+                              placeholder="Notas adicionales..."></textarea>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-light btn-lg" onclick="completeSale()" id="completeSaleBtn" disabled>
+                        <i class="fas fa-check me-2"></i>Completar Venta
+                    </button>
+                    <button type="button" class="btn btn-outline-light" onclick="clearCart()">
+                        <i class="fas fa-trash me-2"></i>Limpiar Carrito
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Venta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres completar esta venta?</p>
+                <div class="alert alert-info">
+                    <strong>Total:</strong> <span id="confirmTotal"></span><br>
+                    <strong>Método de pago:</strong> <span id="confirmPayment"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSale()">
+                    <i class="fas fa-check me-2"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script>
+let cart = [];
+let searchTimeout;
+
+// Búsqueda de productos
+document.getElementById('productSearch').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+    
+    if (query.length < 2) {
+        hideSearchResults();
+        return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+        searchProducts(query);
+    }, 300);
+});
+
+function searchProducts(query) {
+    fetch(`{% url 'frontend:api_search_products' %}?search=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            showSearchResults(data.products);
+        })
+        .catch(error => {
+            console.error('Error searching products:', error);
+        });
+}
+
+function showSearchResults(products) {
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (products.length === 0) {
+        resultsDiv.innerHTML = '<div class="search-result-item text-muted">No se encontraron productos</div>';
+    } else {
+        resultsDiv.innerHTML = products.map(product => `
+            <div class="search-result-item" onclick="addToCart(${product.id}, '${product.name}', ${product.price}, ${product.stock})">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">${product.name}</div>
+                        <div class="small text-muted">${product.barcode || 'Sin código'}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">$${product.price}</div>
+                        <div class="small text-muted">Stock: ${product.stock}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    resultsDiv.style.display = 'block';
+}
+
+function hideSearchResults() {
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+// Click fuera para ocultar resultados
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#productSearch') && !e.target.closest('#searchResults')) {
+        hideSearchResults();
+    }
+});
+
+// Agregar al carrito
+function addToCart(productId, name, price, stock) {
+    // Verificar si ya está en el carrito
+    const existingItem = cart.find(item => item.productId === productId);
+    
+    if (existingItem) {
+        if (existingItem.quantity < stock) {
+            existingItem.quantity++;
+        } else {
+            alert('No hay suficiente stock disponible');
+            return;
+        }
+    } else {
+        if (stock <= 0) {
+            alert('Este producto no tiene stock disponible');
+            return;
+        }
+        
+        cart.push({
+            productId: productId,
+            name: name,
+            price: price,
+            stock: stock,
+            quantity: 1,
+            discount: 0
+        });
+    }
+    
+    updateCartDisplay();
+    hideSearchResults();
+    document.getElementById('productSearch').value = '';
+}
+
+// Actualizar display del carrito
+function updateCartDisplay() {
+    const cartDiv = document.getElementById('cartItems');
+    const emptyDiv = document.getElementById('emptyCart');
+    
+    if (cart.length === 0) {
+        cartDiv.style.display = 'none';
+        emptyDiv.style.display = 'block';
+        document.getElementById('completeSaleBtn').disabled = true;
+    } else {
+        cartDiv.style.display = 'block';
+        emptyDiv.style.display = 'none';
+        document.getElementById('completeSaleBtn').disabled = false;
+        
+        cartDiv.innerHTML = cart.map((item, index) => `
+            <div class="cart-item">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="fw-bold">${item.name}</div>
+                        <div class="small text-muted">$${item.price} c/u</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="quantity-control">
+                            <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
+                            <span class="fw-bold">${item.quantity}</span>
+                            <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, 1)" ${item.quantity >= item.stock ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="fw-bold">$${(item.price * item.quantity * (1 - item.discount / 100)).toFixed(0)}</div>
+                        ${item.discount > 0 ? `<div class="small text-success">-${item.discount}%</div>` : ''}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    updateSummary();
+}
+
+// Cambiar cantidad
+function changeQuantity(index, change) {
+    const item = cart[index];
+    const newQuantity = item.quantity + change;
+    
+    if (newQuantity > 0 && newQuantity <= item.stock) {
+        item.quantity = newQuantity;
+        updateCartDisplay();
+    }
+}
+
+// Remover del carrito
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartDisplay();
+}
+
+// Actualizar resumen
+function updateSummary() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity * item.discount / 100), 0);
+    const totalFinal = subtotal - totalDiscount;
+    
+    document.getElementById('subtotal').textContent = `$${subtotal.toFixed(0)}`;
+    document.getElementById('totalDiscount').textContent = `$${totalDiscount.toFixed(0)}`;
+    document.getElementById('totalFinal').textContent = `$${totalFinal.toFixed(0)}`;
+}
+
+// Limpiar carrito
+function clearCart() {
+    if (confirm('¿Estás seguro de que quieres limpiar el carrito?')) {
+        cart = [];
+        updateCartDisplay();
+    }
+}
+
+// Completar venta
+function completeSale() {
+    if (cart.length === 0) {
+        alert('El carrito está vacío');
+        return;
+    }
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity * (1 - item.discount / 100)), 0);
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    
+    document.getElementById('confirmTotal').textContent = `$${total.toFixed(0)}`;
+    document.getElementById('confirmPayment').textContent = paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    
+    try {
+        // Usar jQuery para mostrar el modal
+        $('#confirmModal').modal('show');
+    } catch (error) {
+        console.error('Error al mostrar modal:', error);
+        alert('Error al mostrar el modal de confirmación: ' + error.message);
+    }
+}
+
+// Confirmar venta
+function confirmSale() {
+    const saleData = {
+        payment_method: document.getElementById('paymentMethod').value,
+        notes: document.getElementById('notes').value,
+        items: cart.map(item => ({
+            product_id: item.productId,
+            quantity: item.quantity,
+            unit_price: item.price,
+            discount_percentage: item.discount
+        }))
+    };
+    
+    // Mostrar loading
+    const btn = document.querySelector('#confirmModal .btn-primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+    btn.disabled = true;
+    
+    fetch('{% url "frontend:sale_create" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(saleData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cerrar modal
+            $('#confirmModal').modal('hide');
+            
+            // Mostrar mensaje de éxito
+            const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Venta completada exitosamente. Ticket: ${data.ticket_number}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('.main-content').prepend(alertHtml);
+            
+            // Limpiar carrito
+            cart = [];
+            updateCartDisplay();
+            document.getElementById('notes').value = '';
+            
+            // Redirigir al detalle de la venta
+            setTimeout(() => {
+                window.location.href = `{% url 'frontend:sale_detail' 0 %}`.replace('0', data.sale_id);
+            }, 2000);
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error al procesar la venta: ' + error.message);
+        
+        // Restaurar botón
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+// Escáner de código de barras
+function focusBarcodeScanner() {
+    const scanner = document.getElementById('barcodeScanner');
+    const input = document.getElementById('barcodeInput');
+    
+    if (scanner.style.display === 'none') {
+        scanner.style.display = 'block';
+        input.focus();
+    } else {
+        scanner.style.display = 'none';
+        input.value = '';
+    }
+}
+
+document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        const barcode = this.value.trim();
+        if (barcode) {
+            // Buscar producto por código de barras
+            fetch(`{% url 'frontend:api_product_by_barcode' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', barcode))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.id) {
+                        addToCart(data.id, data.name, data.price, data.stock);
+                    } else {
+                        alert('Producto no encontrado');
+                    }
+                })
+                .catch(error => {
+                    alert('Error al buscar el producto');
+                });
+            
+            this.value = '';
+            this.focus();
+        }
+    }
+});
+
+// Imprimir ticket
+function printTicket() {
+    if (cart.length === 0) {
+        alert('No hay productos en el carrito para imprimir');
+        return;
+    }
+    
+    // Aquí iría la lógica de impresión
+    alert('Función de impresión en desarrollo');
+}
+
+// Inicializar
+updateCartDisplay();
+</script>
+{% endblock %} 

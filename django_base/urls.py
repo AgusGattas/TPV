@@ -63,4 +63,12 @@ urlpatterns += [
 #<-------------- Our base router -------------->
 urlpatterns += [path("api/", include(base_router.urls)),]
 
+#<-------------- Frontend URLs -------------->
+urlpatterns += [path("", include("frontend.urls")),]
+
+#<-------------- Authentication URLs -------------->
+urlpatterns += [
+    path("login/", include("auth.urls")),
+]
+
 # fmt: on

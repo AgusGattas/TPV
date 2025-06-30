@@ -1,0 +1,402 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Dashboard - TodoBrilla{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .stats-card.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .stats-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stats-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .activity-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .activity-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        height: 400px;
+        position: relative;
+    }
+    
+    .chart-container canvas {
+        max-height: 350px !important;
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Dashboard</h1>
+        <div class="text-muted">
+            <i class="fas fa-calendar me-2"></i>
+            {{ today|date:"l, d \d\e F Y" }}
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card success">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">${{ total_revenue_today|floatformat:0 }}</div>
+                        <div class="stats-label">Ventas de Hoy</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card info">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">{{ total_sales_today }}</div>
+                        <div class="stats-label">Transacciones Hoy</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">{{ total_products }}</div>
+                        <div class="stats-label">Productos Activos</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-box fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card warning">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">{{ low_stock_products }}</div>
+                        <div class="stats-label">Stock Bajo</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gráfico de ventas -->
+        <div class="col-xl-8 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Ventas de los Últimos 7 Días
+                </h5>
+                <canvas id="salesChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Estado de la caja -->
+        <div class="col-xl-4 mb-4">
+            <div class="activity-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-cash-register me-2"></i>
+                    Estado de Caja
+                </h5>
+                
+                {% if current_cashbox %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Caja Abierta</strong>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="text-muted small">Efectivo Inicial</div>
+                            <div class="h5 mb-0">${{ current_cashbox.initial_cash|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">Ventas</div>
+                            <div class="h5 mb-0">${{ current_cashbox.total_sales|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <div class="text-muted small">Efectivo Esperado</div>
+                        <div class="h4 mb-0 text-primary">${{ current_cashbox.calculated_cash|floatformat:0 }}</div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'frontend:cashbox_detail' current_cashbox.id %}" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-eye me-2"></i>Ver Detalles
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No hay caja abierta</strong>
+                    </div>
+                    
+                    <a href="{% url 'frontend:open_cashbox' %}" class="btn btn-success btn-sm w-100">
+                        <i class="fas fa-plus me-2"></i>Abrir Caja
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Ventas recientes -->
+        <div class="col-xl-6 mb-4">
+            <div class="activity-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock me-2"></i>
+                    Ventas Recientes
+                </h5>
+                
+                {% if recent_sales %}
+                    {% for sale in recent_sales %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Ticket #{{ sale.ticket_number }}</div>
+                                <div class="text-muted small">{{ sale.user.get_full_name|default:sale.user.username }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ sale.total_final|floatformat:0 }}</div>
+                                <div class="activity-time">{{ sale.created_at|date:"H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p>No hay ventas recientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Movimientos de stock -->
+        <div class="col-xl-6 mb-4">
+            <div class="activity-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-warehouse me-2"></i>
+                    Movimientos de Stock
+                </h5>
+                
+                {% if recent_stock_movements %}
+                    {% for movement in recent_stock_movements %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">{{ movement.stock.product.name }}</div>
+                                <div class="text-muted small">{{ movement.reason }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold {% if movement.type == 'in' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if movement.type == 'in' %}+{% else %}-{% endif %}{{ movement.quantity }}
+                                </div>
+                                <div class="activity-time">{{ movement.created_at|date:"H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-warehouse fa-2x mb-2"></i>
+                        <p>No hay movimientos recientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas rápidas -->
+    {% if low_stock_products > 0 or out_of_stock_products > 0 %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Alertas de Stock
+                </h6>
+                <div class="row">
+                    {% if low_stock_products > 0 %}
+                    <div class="col-md-6">
+                        <strong>{{ low_stock_products }}</strong> productos con stock bajo
+                    </div>
+                    {% endif %}
+                    {% if out_of_stock_products > 0 %}
+                    <div class="col-md-6">
+                        <strong>{{ out_of_stock_products }}</strong> productos sin stock
+                    </div>
+                    {% endif %}
+                </div>
+                <hr>
+                <a href="{% url 'frontend:stock_list' %}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-eye me-2"></i>Ver Stock
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de ventas
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesData = {{ sales_last_7_days|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: salesData.map(item => item.date),
+            datasets: [{
+                label: 'Ventas ($)',
+                data: salesData.map(item => item.total),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#667eea',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Ventas: $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#6c757d',
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#6c757d',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            elements: {
+                point: {
+                    hoverBackgroundColor: '#667eea'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

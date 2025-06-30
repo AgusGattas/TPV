@@ -1,0 +1,157 @@
+{% extends 'frontend/base.html' %}
+
+{% block page_title %}Editar {{ product.name }}{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        margin: -2rem -2rem 2rem -2rem;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Editar Producto</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'frontend:products_list' %}">Productos</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'frontend:product_detail' product.id %}">{{ product.name }}</a></li>
+                    <li class="breadcrumb-item active">Editar</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'frontend:product_detail' product.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <div class="form-container">
+        <div class="form-header">
+            <h4 class="mb-0">
+                <i class="fas fa-edit me-2"></i>
+                Editar: {{ product.name }}
+            </h4>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nombre del Producto *</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ product.name }}" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="unit" class="form-label">Unidad</label>
+                        <select class="form-select" id="unit" name="unit">
+                            <option value="unidad" {% if product.unit == 'unidad' %}selected{% endif %}>Unidad</option>
+                            <option value="kg" {% if product.unit == 'kg' %}selected{% endif %}>Kilogramo</option>
+                            <option value="litro" {% if product.unit == 'litro' %}selected{% endif %}>Litro</option>
+                            <option value="metro" {% if product.unit == 'metro' %}selected{% endif %}>Metro</option>
+                            <option value="par" {% if product.unit == 'par' %}selected{% endif %}>Par</option>
+                            <option value="docena" {% if product.unit == 'docena' %}selected{% endif %}>Docena</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Descripción</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ product.description }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Precio de Venta *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="price" name="price" value="{{ product.price }}" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="cost_price" class="form-label">Precio de Costo</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="cost_price" name="cost_price" value="{{ product.cost_price }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="min_stock" class="form-label">Stock Mínimo</label>
+                        <input type="number" class="form-control" id="min_stock" name="min_stock" value="{{ product.min_stock }}" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="barcode" class="form-label">Código de Barras</label>
+                        <input type="text" class="form-control" id="barcode" name="barcode" value="{{ product.barcode }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Categoría</label>
+                        <input type="text" class="form-control" id="category" name="category" value="{{ product.category }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'frontend:product_detail' product.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-cálculo del margen de ganancia
+    const priceInput = document.getElementById('price');
+    const costInput = document.getElementById('cost_price');
+    
+    function calculateMargin() {
+        const price = parseFloat(priceInput.value) || 0;
+        const cost = parseFloat(costInput.value) || 0;
+        
+        if (cost > 0 && price > 0) {
+            const margin = ((price - cost) / cost) * 100;
+            console.log('Margen de ganancia:', margin.toFixed(2) + '%');
+        }
+    }
+    
+    priceInput.addEventListener('input', calculateMargin);
+    costInput.addEventListener('input', calculateMargin);
+});
+</script>
+{% endblock %} 

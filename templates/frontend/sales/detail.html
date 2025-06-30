@@ -1,0 +1,323 @@
+{% extends 'frontend/base.html' %}
+
+{% block page_title %}Venta #{{ sale.ticket_number }}{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .sale-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .sale-info-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    
+    .item-row {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .item-row:hover {
+        background: #e9ecef;
+    }
+    
+    .payment-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .payment-efectivo {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .payment-debito {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .payment-transferencia {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .total-section {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Detalle de Venta</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'frontend:sales_list' %}">Ventas</a></li>
+                    <li class="breadcrumb-item active">Venta #{{ sale.ticket_number }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'frontend:sales_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            <button type="button" class="btn btn-primary" onclick="printTicket()">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Información de la venta -->
+    <div class="sale-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">Venta #{{ sale.ticket_number }}</h2>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-user me-2"></i>
+                    {{ sale.user.get_full_name|default:sale.user.username }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="h3 mb-0">{{ sale.created_at|date:"d/m/Y H:i" }}</div>
+                <small class="opacity-75">Fecha y hora</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Detalles de la venta -->
+        <div class="col-lg-8">
+            <div class="sale-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Productos Vendidos
+                </h5>
+                
+                {% for item in sale.items.all %}
+                <div class="item-row">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="fw-bold">{{ item.product.name }}</div>
+                            <div class="text-muted small">
+                                {% if item.product.barcode %}
+                                    Código: {{ item.product.barcode }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold">{{ item.quantity }}</div>
+                            <div class="text-muted small">{{ item.product.unit|default:"unidad" }}</div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold">${{ item.unit_price|floatformat:2 }}</div>
+                            <div class="text-muted small">Precio unitario</div>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <div class="fw-bold">${{ item.total|floatformat:2 }}</div>
+                            {% if item.discount_percentage > 0 %}
+                                <div class="text-success small">-{{ item.discount_percentage }}%</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                    <p>No hay productos en esta venta</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Resumen y pago -->
+        <div class="col-lg-4">
+            <div class="sale-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Información de Pago
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Método de Pago</div>
+                        <div class="fw-bold">
+                            <span class="payment-badge payment-{{ sale.payment_method }}">
+                                {% if sale.payment_method == 'efectivo' %}
+                                    <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                                {% elif sale.payment_method == 'debito' %}
+                                    <i class="fas fa-credit-card me-1"></i>Débito
+                                {% elif sale.payment_method == 'transferencia' %}
+                                    <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                                {% else %}
+                                    {{ sale.payment_method|title }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Caja</div>
+                        <div class="fw-bold">{{ sale.cashbox.user.get_full_name|default:sale.cashbox.user.username }}</div>
+                    </div>
+                </div>
+                
+                {% if sale.notes %}
+                <div class="mb-3">
+                    <div class="text-muted small">Notas</div>
+                    <div class="fw-bold">{{ sale.notes }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Estado</div>
+                        <div class="fw-bold">
+                            {% if sale.is_active %}
+                                <span class="badge bg-success">Activa</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">ID de Venta</div>
+                        <div class="fw-bold">#{{ sale.id }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Totales -->
+            <div class="total-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-calculator me-2"></i>
+                    Resumen de Totales
+                </h5>
+                
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Subtotal</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">${{ sale.subtotal|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                {% if sale.total_discount > 0 %}
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Descuentos</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">-${{ sale.total_discount|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <hr class="border-white">
+                
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Total Final</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="h4 mb-0">${{ sale.total_final|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="sale-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock me-2"></i>
+                    Información Adicional
+                </h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted">Fecha de Creación:</td>
+                                <td>{{ sale.created_at|date:"d/m/Y H:i:s" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Última Actualización:</td>
+                                <td>{{ sale.updated_at|date:"d/m/Y H:i:s" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Cantidad de Productos:</td>
+                                <td>{{ sale.items.count }} productos</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted">Caja Abierta:</td>
+                                <td>{{ sale.cashbox.opened_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Promedio por Producto:</td>
+                                <td>${{ sale.average_per_item|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Producto Más Caro:</td>
+                                <td>
+                                    {% if sale.most_expensive_item %}
+                                        {{ sale.most_expensive_item.product.name }} (${{ sale.most_expensive_item.unit_price|floatformat:2 }})
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script>
+// Imprimir ticket
+function printTicket() {
+    // Aquí iría la lógica de impresión
+    alert('Función de impresión en desarrollo');
+    
+    // Opción temporal: imprimir la página
+    // window.print();
+}
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %} 

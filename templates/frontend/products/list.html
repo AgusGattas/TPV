@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Productos - TodoBrilla{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stock-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .product-image {
+        height: 200px;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Productos</h1>
+        <a href="{% url 'frontend:product_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Producto
+        </a>
+    </div>
+
+    <!-- Búsqueda y filtros -->
+    <div class="search-box">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nombre, código de barras...">
+            </div>
+            <div class="col-md-3">
+                <label for="stock_filter" class="form-label">Filtrar por Stock</label>
+                <select class="form-select" id="stock_filter" name="stock_filter">
+                    <option value="">Todos</option>
+                    <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>Stock Bajo</option>
+                    <option value="out" {% if stock_filter == 'out' %}selected{% endif %}>Sin Stock</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="order_by" class="form-label">Ordenar por</label>
+                <select class="form-select" id="order_by" name="order_by">
+                    <option value="-created_at" {% if order_by == '-created_at' %}selected{% endif %}>Más Recientes</option>
+                    <option value="name" {% if order_by == 'name' %}selected{% endif %}>Nombre A-Z</option>
+                    <option value="-price" {% if order_by == '-price' %}selected{% endif %}>Precio Mayor</option>
+                    <option value="price" {% if order_by == 'price' %}selected{% endif %}>Precio Menor</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de productos -->
+    {% if products %}
+        <div class="row">
+            {% for product in products %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card product-card h-100">
+                    <!-- Imagen del producto -->
+                    <div class="position-relative">
+                        {% if product.images.first %}
+                            <img src="{{ product.images.first.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="card-img-top product-image bg-light d-flex align-items-center justify-content-center">
+                                <i class="fas fa-box fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Badge de stock -->
+                        <div class="stock-badge">
+                            {% if product.stock_status == 'sin_stock' %}
+                                <span class="badge bg-danger">Sin Stock</span>
+                            {% elif product.stock_status == 'bajo_stock' %}
+                                <span class="badge bg-warning">Stock Bajo</span>
+                            {% else %}
+                                <span class="badge bg-success">En Stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text text-muted small">
+                            <i class="fas fa-barcode me-1"></i>{{ product.barcode|default:"Sin código" }}
+                        </p>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="text-muted small">Precio</div>
+                                <div class="h5 mb-0 text-primary">${{ product.price|floatformat:0 }}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-muted small">Stock</div>
+                                <div class="h5 mb-0 {% if product.stock_status == 'sin_stock' %}text-danger{% elif product.stock_status == 'bajo_stock' %}text-warning{% else %}text-success{% endif %}">
+                                    {{ product.current_stock }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if product.description %}
+                            <p class="card-text small text-muted">{{ product.description|truncatewords:10 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'frontend:product_detail' product.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>Ver
+                            </a>
+                            <a href="{% url 'frontend:product_edit' product.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if products.has_other_pages %}
+        <nav aria-label="Navegación de productos">
+            <ul class="pagination justify-content-center">
+                {% if products.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in products.paginator.page_range %}
+                    {% if products.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    {% else %}
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+            <i class="fas fa-box fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No se encontraron productos</h4>
+            <p class="text-muted">Intenta ajustar los filtros de búsqueda o crear un nuevo producto.</p>
+            <a href="{% url 'frontend:product_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear Producto
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda en tiempo real
+let searchTimeout;
+$('#search').on('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+        $('form').submit();
+    }, 500);
+});
+
+// Cambio automático de filtros
+$('#stock_filter, #order_by').on('change', function() {
+    $('form').submit();
+});
+</script>
+{% endblock %} 

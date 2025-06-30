@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Caja - TodoBrilla{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cashbox-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease;
+    }
+    
+    .cashbox-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .cashbox-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+    }
+    
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 0.5rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+    }
+    
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Gestión de Caja</h1>
+        <a href="{% url 'frontend:open_cashbox' %}" class="btn btn-success">
+            <i class="fas fa-plus me-2"></i>Abrir Caja
+        </a>
+    </div>
+
+    <!-- Lista de cajas -->
+    {% if cashboxes %}
+        <div class="row">
+            {% for cashbox in cashboxes %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="cashbox-card">
+                    <div class="cashbox-header">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="mb-1">Caja #{{ cashbox.id }}</h5>
+                                <small>{{ cashbox.opened_at|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <div class="text-end">
+                                {% if cashbox.is_open %}
+                                    <span class="badge status-badge bg-success">Abierta</span>
+                                {% else %}
+                                    <span class="badge status-badge bg-secondary">Cerrada</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">${{ cashbox.initial_cash|floatformat:0 }}</div>
+                                <div class="stat-label">Inicial</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${{ cashbox.total_sales|floatformat:0 }}</div>
+                                <div class="stat-label">Ventas</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${{ cashbox.calculated_cash|floatformat:0 }}</div>
+                                <div class="stat-label">Esperado</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <small class="text-muted">Responsable</small>
+                                <div>{{ cashbox.user.get_full_name|default:cashbox.user.username }}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Movimientos</small>
+                                <div>{{ cashbox.movements.count }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if not cashbox.is_open %}
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Contado</small>
+                                    <div>${{ cashbox.counted_cash|floatformat:0|default:"-" }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Diferencia</small>
+                                    <div class="{% if cashbox.difference < 0 %}text-danger{% elif cashbox.difference > 0 %}text-success{% endif %}">
+                                        ${{ cashbox.difference|floatformat:0|default:"-" }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">A Retirar</small>
+                                    <div>${{ cashbox.cash_to_withdraw|floatformat:0|default:"-" }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">A Mantener</small>
+                                    <div>${{ cashbox.cash_to_keep|floatformat:0|default:"-" }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'frontend:cashbox_detail' cashbox.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>Ver Detalle
+                            </a>
+                            
+                            {% if cashbox.is_open %}
+                                <a href="{% url 'frontend:close_cashbox' cashbox.id %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-lock me-1"></i>Cerrar Caja
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">
+                                    Cerrada: {{ cashbox.closed_at|date:"d/m/Y H:i" }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+    {% else %}
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+            <i class="fas fa-cash-register fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No hay cajas registradas</h4>
+            <p class="text-muted">Crea la primera caja para comenzar a gestionar las ventas.</p>
+            <a href="{% url 'frontend:open_cashbox' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Abrir Primera Caja
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh cada 30 segundos para cajas abiertas
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %} 
