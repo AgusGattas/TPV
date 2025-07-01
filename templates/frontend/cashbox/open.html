@@ -135,7 +135,7 @@ document.getElementById('openCashboxForm').addEventListener('submit', function(e
             
             // Redirigir al detalle de la caja
             setTimeout(() => {
-                window.location.href = `/cashbox/${data.cashbox_id}/`;
+                window.location.href = `/caja/${data.cashbox_id}/`;
             }, 1500);
         } else {
             throw new Error(data.message);

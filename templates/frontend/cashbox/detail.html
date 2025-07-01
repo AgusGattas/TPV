@@ -20,6 +20,39 @@
         margin-bottom: 1rem;
     }
     
+    .sale-row {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    
+    .sale-row:hover {
+        background: #e9ecef;
+        border-color: #0d6efd;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    }
+    
+    .sale-link {
+        display: block;
+        color: inherit;
+    }
+    
+    .sale-link:hover {
+        color: inherit;
+    }
+    
+    .sale-link .text-primary {
+        transition: color 0.2s ease;
+    }
+    
+    .sale-link:hover .text-primary {
+        color: #0b5ed7 !important;
+    }
+    
     .movement-row {
         background: #f8f9fa;
         border-radius: 10px;
@@ -29,18 +62,6 @@
     }
     
     .movement-row:hover {
-        background: #e9ecef;
-    }
-    
-    .sale-row {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        transition: all 0.2s ease;
-    }
-    
-    .sale-row:hover {
         background: #e9ecef;
     }
     
@@ -205,39 +226,40 @@
                 {% if sales %}
                     {% for sale in sales %}
                     <div class="sale-row">
-                        <div class="row align-items-center">
-                            <div class="col-md-4">
-                                <div class="fw-bold">
-                                    <a href="{% url 'frontend:sale_detail' sale.id %}" class="text-decoration-none">
+                        <a href="{% url 'frontend:sale_detail' sale.id %}" class="text-decoration-none sale-link">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="fw-bold text-primary">
                                         Ticket #{{ sale.ticket_number }}
-                                    </a>
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-user me-1"></i>
+                                        {{ sale.user.get_full_name|default:sale.user.username }}
+                                    </div>
                                 </div>
-                                <div class="text-muted small">
-                                    <i class="fas fa-user me-1"></i>
-                                    {{ sale.user.get_full_name|default:sale.user.username }}
+                                <div class="col-md-3">
+                                    <span class="badge bg-primary">
+                                        {% if sale.payment_method == 'efectivo' %}
+                                            <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                                        {% elif sale.payment_method == 'debito' %}
+                                            <i class="fas fa-credit-card me-1"></i>Débito
+                                        {% elif sale.payment_method == 'transferencia' %}
+                                            <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                                        {% else %}
+                                            {{ sale.payment_method|title }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="fw-bold text-success">${{ sale.total_final|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <div class="text-muted small">{{ sale.created_at|date:"H:i" }}</div>
+                                    <div class="text-muted small">{{ sale.created_at|date:"d/m/Y" }}</div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <span class="badge bg-primary">
-                                    {% if sale.payment_method == 'efectivo' %}
-                                        <i class="fas fa-money-bill-wave me-1"></i>Efectivo
-                                    {% elif sale.payment_method == 'debito' %}
-                                        <i class="fas fa-credit-card me-1"></i>Débito
-                                    {% elif sale.payment_method == 'transferencia' %}
-                                        <i class="fas fa-exchange-alt me-1"></i>Transferencia
-                                    {% else %}
-                                        {{ sale.payment_method|title }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <div class="fw-bold text-success">${{ sale.total_final|floatformat:2 }}</div>
-                            </div>
-                            <div class="col-md-2 text-end">
-                                <div class="text-muted small">{{ sale.created_at|date:"H:i" }}</div>
-                                <div class="text-muted small">{{ sale.created_at|date:"d/m/Y" }}</div>
-                            </div>
-                        </div>
+                        </a>
                     </div>
                     {% endfor %}
                 {% else %}
@@ -263,16 +285,25 @@
                         <div class="text-white-50 small">Saldo Inicial</div>
                     </div>
                     <div class="col-6 text-end">
-                        <div class="fw-bold">${{ cashbox.initial_amount|floatformat:2 }}</div>
+                        <div class="fw-bold">${{ cashbox.initial_cash|floatformat:2 }}</div>
                     </div>
                 </div>
                 
                 <div class="row mb-2">
                     <div class="col-6">
-                        <div class="text-white-50 small">Ingresos</div>
+                        <div class="text-white-50 small">Ingresos por Ventas</div>
                     </div>
                     <div class="col-6 text-end">
-                        <div class="fw-bold">+${{ cashbox.total_income|floatformat:2 }}</div>
+                        <div class="fw-bold">+${{ cashbox.total_sales|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Otros Ingresos</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">+${{ cashbox.movements_income|floatformat:2 }}</div>
                     </div>
                 </div>
                 
@@ -318,11 +349,11 @@
                 <div class="row mb-3">
                     <div class="col-6">
                         <div class="text-muted small">Ingresos por Ventas</div>
-                        <div class="fw-bold text-success">${{ cashbox.sales_income|floatformat:2 }}</div>
+                        <div class="fw-bold text-success">${{ cashbox.total_sales|floatformat:2 }}</div>
                     </div>
                     <div class="col-6">
                         <div class="text-muted small">Otros Ingresos</div>
-                        <div class="fw-bold text-success">${{ cashbox.other_income|floatformat:2 }}</div>
+                        <div class="fw-bold text-success">${{ cashbox.movements_income|floatformat:2 }}</div>
                     </div>
                 </div>
                 

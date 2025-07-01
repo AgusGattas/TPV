@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import json
 from django.contrib.auth import authenticate, login
+from decimal import Decimal
 
 from products.models import Product
 from sales.models import Sale, SaleItem
@@ -303,7 +304,7 @@ def sale_create(request):
     current_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
     if not current_cashbox:
         messages.error(request, 'No hay una caja abierta. Debes abrir una caja antes de realizar ventas.')
-        return redirect('cashbox_list')
+        return redirect('frontend:cashbox_list')
     
     if request.method == 'POST':
         try:
@@ -544,25 +545,36 @@ def close_cashbox(request, pk):
     
     if not cashbox.is_open:
         messages.error(request, 'Esta caja ya está cerrada')
-        return redirect('cashbox_detail', pk=pk)
+        return redirect('frontend:cashbox_detail', pk=pk)
     
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            counted_cash = Decimal(request.POST.get('counted_cash', 0))
+            cash_to_keep = request.POST.get('cash_to_keep')
+            if cash_to_keep:
+                cash_to_keep = Decimal(cash_to_keep)
             
             cashbox.close_cashbox(
-                counted_cash=data['counted_cash'],
-                cash_to_keep=data.get('cash_to_keep')
+                counted_cash=counted_cash,
+                cash_to_keep=cash_to_keep
             )
             
             messages.success(request, 'Caja cerrada exitosamente')
-            return redirect('cashbox_detail', pk=pk)
+            return redirect('frontend:cashbox_detail', pk=pk)
             
         except Exception as e:
             messages.error(request, str(e))
     
+    # Movimientos de la caja
+    movements = CashMovement.objects.filter(cashbox=cashbox).order_by('-created_at')
+    
+    # Ventas de la caja
+    sales = Sale.objects.filter(cashbox=cashbox, is_active=True).order_by('-created_at')
+    
     context = {
         'cashbox': cashbox,
+        'movements': movements,
+        'sales': sales,
     }
     
     return render(request, 'frontend/cashbox/close.html', context)
@@ -576,33 +588,41 @@ def add_cash_movement(request, pk):
     
     if not cashbox.is_open:
         messages.error(request, 'No se pueden hacer movimientos en una caja cerrada')
-        return redirect('cashbox_detail', pk=pk)
+        return redirect('frontend:cashbox_detail', pk=pk)
     
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            movement_type = request.POST.get('type')
+            amount = Decimal(request.POST.get('amount', 0))
+            reason = request.POST.get('reason', '').strip()
             
-            CashMovement.objects.create(
-                cashbox=cashbox,
-                user=request.user,
-                type=data['type'],
-                amount=data['amount'],
-                reason=data['reason']
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Movimiento agregado exitosamente'
-            })
+            if not movement_type or not amount or not reason:
+                messages.error(request, 'Todos los campos son obligatorios')
+            else:
+                CashMovement.objects.create(
+                    cashbox=cashbox,
+                    user=request.user,
+                    type=movement_type,
+                    amount=amount,
+                    reason=reason
+                )
+                
+                messages.success(request, 'Movimiento agregado exitosamente')
+                return redirect('frontend:cashbox_detail', pk=pk)
             
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': str(e)
-            }, status=400)
+            messages.error(request, str(e))
+    
+    # Movimientos de la caja
+    movements = CashMovement.objects.filter(cashbox=cashbox).order_by('-created_at')
+    
+    # Ventas de la caja
+    sales = Sale.objects.filter(cashbox=cashbox, is_active=True).order_by('-created_at')
     
     context = {
         'cashbox': cashbox,
+        'movements': movements,
+        'sales': sales,
     }
     
     return render(request, 'frontend/cashbox/add_movement.html', context)

@@ -55,6 +55,76 @@ class CashBox(BaseModel):
         )['total'] or Decimal('0.00')
         return income - expense
 
+    @property
+    def total_income(self):
+        """Total de ingresos (ventas + movimientos de ingreso)"""
+        sales_income = self.total_sales
+        movement_income = self.movements.filter(type='ingreso').aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        return sales_income + movement_income
+
+    @property
+    def total_expenses(self):
+        """Total de egresos (movimientos de egreso)"""
+        return self.movements.filter(type='egreso').aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def movements_income(self):
+        """Total de ingresos por movimientos (sin incluir ventas)"""
+        return self.movements.filter(type='ingreso').aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def current_balance(self):
+        """Balance actual de la caja"""
+        return self.initial_cash + self.total_income - self.total_expenses
+
+    @property
+    def average_sale(self):
+        """Promedio por venta"""
+        sales_count = self.sales.filter(is_active=True).count()
+        if sales_count > 0:
+            return self.total_sales / sales_count
+        return Decimal('0.00')
+
+    @property
+    def current_duration_hours(self):
+        """Duración actual en horas"""
+        if self.closed_at:
+            duration = self.closed_at - self.opened_at
+        else:
+            duration = timezone.now() - self.opened_at
+        return int(duration.total_seconds() // 3600)
+
+    @property
+    def current_duration_minutes(self):
+        """Duración actual en minutos (resto)"""
+        if self.closed_at:
+            duration = self.closed_at - self.opened_at
+        else:
+            duration = timezone.now() - self.opened_at
+        return int((duration.total_seconds() % 3600) // 60)
+
+    @property
+    def duration_hours(self):
+        """Duración total en horas (para cajas cerradas)"""
+        if self.closed_at:
+            duration = self.closed_at - self.opened_at
+            return int(duration.total_seconds() // 3600)
+        return self.current_duration_hours
+
+    @property
+    def duration_minutes(self):
+        """Duración total en minutos (para cajas cerradas)"""
+        if self.closed_at:
+            duration = self.closed_at - self.opened_at
+            return int((duration.total_seconds() % 3600) // 60)
+        return self.current_duration_minutes
+
     def calculate_cash(self):
         """Calcula el efectivo esperado en caja"""
         self.calculated_cash = self.initial_cash + self.total_sales + self.total_movements

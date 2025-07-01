@@ -33,30 +33,52 @@
     .quantity-control {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
     }
     
     .quantity-btn {
         width: 30px;
         height: 30px;
+        border: 1px solid #dee2e6;
+        background: white;
         border-radius: 50%;
-        border: none;
-        background: #0d6efd;
-        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: bold;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.2s;
     }
     
-    .quantity-btn:hover {
-        background: #0b5ed7;
-        transform: scale(1.1);
+    .quantity-btn:hover:not(:disabled) {
+        background: #e9ecef;
     }
     
     .quantity-btn:disabled {
-        background: #6c757d;
+        opacity: 0.5;
         cursor: not-allowed;
-        transform: none;
+    }
+    
+    .discount-control {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .discount-control .input-group {
+        max-width: 100px;
+    }
+    
+    .discount-control .form-control {
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .discount-control .input-group-text {
+        background: #f8f9fa;
+        border-color: #dee2e6;
+        font-size: 0.875rem;
     }
     
     .summary-card {
@@ -106,8 +128,10 @@
 {% endblock %}
 
 {% block frontend_content %}
-{% csrf_token %}
 <div class="container-fluid">
+    <!-- CSRF Token -->
+    {% csrf_token %}
+    
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Nueva Venta</h1>
@@ -246,18 +270,18 @@
 </div>
 
 <!-- Modal de confirmación -->
-<div class="modal fade" id="confirmModal" tabindex="-1">
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Confirmar Venta</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar Venta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>¿Estás seguro de que quieres completar esta venta?</p>
                 <div class="alert alert-info">
-                    <strong>Total:</strong> <span id="confirmTotal"></span><br>
-                    <strong>Método de pago:</strong> <span id="confirmPayment"></span>
+                    <strong>Total:</strong> <span id="confirmTotal">$0</span><br>
+                    <strong>Método de pago:</strong> <span id="confirmPayment">Efectivo</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -388,15 +412,27 @@ function updateCartDisplay() {
         cartDiv.innerHTML = cart.map((item, index) => `
             <div class="cart-item">
                 <div class="row align-items-center">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="fw-bold">${item.name}</div>
                         <div class="small text-muted">$${item.price} c/u</div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="quantity-control">
                             <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
                             <span class="fw-bold">${item.quantity}</span>
                             <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, 1)" ${item.quantity >= item.stock ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="discount-control">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" 
+                                       value="${item.discount}" 
+                                       min="0" max="100" step="1"
+                                       onchange="changeDiscount(${index}, this.value)"
+                                       placeholder="0">
+                                <span class="input-group-text">%</span>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -423,6 +459,21 @@ function changeQuantity(index, change) {
     
     if (newQuantity > 0 && newQuantity <= item.stock) {
         item.quantity = newQuantity;
+        updateCartDisplay();
+    }
+}
+
+// Cambiar descuento
+function changeDiscount(index, discount) {
+    const item = cart[index];
+    const newDiscount = parseFloat(discount) || 0;
+    
+    if (newDiscount >= 0 && newDiscount <= 100) {
+        item.discount = newDiscount;
+        updateCartDisplay();
+    } else {
+        alert('El descuento debe estar entre 0% y 100%');
+        // Restaurar el valor anterior
         updateCartDisplay();
     }
 }
@@ -454,6 +505,8 @@ function clearCart() {
 
 // Completar venta
 function completeSale() {
+    console.log('Función completeSale llamada');
+    
     if (cart.length === 0) {
         alert('El carrito está vacío');
         return;
@@ -462,12 +515,69 @@ function completeSale() {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity * (1 - item.discount / 100)), 0);
     const paymentMethod = document.getElementById('paymentMethod').value;
     
-    document.getElementById('confirmTotal').textContent = `$${total.toFixed(0)}`;
-    document.getElementById('confirmPayment').textContent = paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    console.log('Total:', total);
+    console.log('Método de pago:', paymentMethod);
+    
+    // Verificar que los elementos del modal existan antes de intentar modificar su contenido
+    const confirmTotalElement = document.getElementById('confirmTotal');
+    const confirmPaymentElement = document.getElementById('confirmPayment');
+    
+    console.log('Buscando elementos del modal...');
+    console.log('confirmTotalElement:', confirmTotalElement);
+    console.log('confirmPaymentElement:', confirmPaymentElement);
+    
+    if (!confirmTotalElement) {
+        console.error('Elemento confirmTotal no encontrado');
+        // Intentar mostrar el modal de todas formas
+        try {
+            $('#confirmModal').modal('show');
+        } catch (error) {
+            console.error('Error al mostrar modal:', error);
+            alert('Error: No se pudo mostrar el modal de confirmación');
+        }
+        return;
+    }
+    
+    if (!confirmPaymentElement) {
+        console.error('Elemento confirmPayment no encontrado');
+        // Intentar mostrar el modal de todas formas
+        try {
+            $('#confirmModal').modal('show');
+        } catch (error) {
+            console.error('Error al mostrar modal:', error);
+            alert('Error: No se pudo mostrar el modal de confirmación');
+        }
+        return;
+    }
+    
+    // Actualizar contenido del modal
+    confirmTotalElement.textContent = `$${total.toFixed(0)}`;
+    confirmPaymentElement.textContent = paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    
+    console.log('Intentando mostrar modal...');
     
     try {
+        // Verificar si jQuery está disponible
+        if (typeof $ === 'undefined') {
+            console.error('jQuery no está disponible');
+            alert('Error: jQuery no está disponible');
+            return;
+        }
+        
+        // Verificar si el modal existe
+        const modal = document.getElementById('confirmModal');
+        if (!modal) {
+            console.error('Modal no encontrado');
+            alert('Error: Modal de confirmación no encontrado');
+            return;
+        }
+        
+        console.log('Modal encontrado, intentando mostrar...');
+        
         // Usar jQuery para mostrar el modal
         $('#confirmModal').modal('show');
+        
+        console.log('Modal mostrado exitosamente');
     } catch (error) {
         console.error('Error al mostrar modal:', error);
         alert('Error al mostrar el modal de confirmación: ' + error.message);
@@ -589,6 +699,51 @@ function printTicket() {
 }
 
 // Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, verificando elementos...');
+    
+    // Verificar elementos críticos
+    const elements = {
+        'productSearch': document.getElementById('productSearch'),
+        'searchResults': document.getElementById('searchResults'),
+        'cartItems': document.getElementById('cartItems'),
+        'emptyCart': document.getElementById('emptyCart'),
+        'completeSaleBtn': document.getElementById('completeSaleBtn'),
+        'confirmModal': document.getElementById('confirmModal'),
+        'confirmTotal': document.getElementById('confirmTotal'),
+        'confirmPayment': document.getElementById('confirmPayment'),
+        'paymentMethod': document.getElementById('paymentMethod'),
+        'subtotal': document.getElementById('subtotal'),
+        'totalDiscount': document.getElementById('totalDiscount'),
+        'totalFinal': document.getElementById('totalFinal')
+    };
+    
+    // Verificar que todos los elementos existan
+    for (const [name, element] of Object.entries(elements)) {
+        if (!element) {
+            console.error(`Elemento ${name} no encontrado`);
+        } else {
+            console.log(`Elemento ${name} encontrado`);
+        }
+    }
+    
+    // Verificar jQuery
+    if (typeof $ === 'undefined') {
+        console.error('jQuery no está disponible');
+    } else {
+        console.log('jQuery está disponible');
+    }
+    
+    // Verificar Bootstrap
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap no está disponible');
+    } else {
+        console.log('Bootstrap está disponible');
+    }
+    
+    updateCartDisplay();
+});
+
 updateCartDisplay();
 </script>
 {% endblock %} 
