@@ -1,0 +1,644 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Reportes - TodoBrilla{% endblock %}
+
+{% block frontend_extra_css %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .stats-card.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .stats-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stats-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stats-card.danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        height: 400px;
+        position: relative;
+    }
+    
+    .chart-container canvas {
+        max-height: 350px !important;
+        width: 100% !important;
+    }
+
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background: #f8f9fa;
+        border: none;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .table td {
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+
+    .badge-payment {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .badge-efectivo {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-debito {
+        background: #007bff;
+        color: white;
+    }
+
+    .badge-transferencia {
+        background: #6f42c1;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Reportes</h1>
+        <div class="text-muted">
+            <i class="fas fa-calendar me-2"></i>
+            {{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}
+        </div>
+    </div>
+
+    <!-- Filtros de fecha -->
+    <div class="report-card mb-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="date_from" class="form-label">Desde</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label for="date_to" class="form-label">Hasta</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ date_to }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Actualizar Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card success">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">${{ total_revenue|floatformat:0 }}</div>
+                        <div class="stats-label">Total Ventas</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card info">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">{{ total_sales }}</div>
+                        <div class="stats-label">Transacciones</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">${{ average_sale|floatformat:0 }}</div>
+                        <div class="stats-label">Promedio por Venta</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stats-card warning">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">{{ daily_average|floatformat:1 }}</div>
+                        <div class="stats-label">Promedio Diario</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gráfico de ventas por método de pago -->
+        <div class="col-xl-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Ventas por Método de Pago
+                </h5>
+                <canvas id="paymentChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de ventas por día -->
+        <div class="col-xl-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Ventas por Día
+                </h5>
+                <canvas id="dailyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos más vendidos -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2"></i>
+                    Productos Más Vendidos
+                </h5>
+                
+                {% if top_products %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad Vendida</th>
+                                <th class="text-end">Total Vendido</th>
+                                <th class="text-end">Promedio por Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ product.product__name }}</div>
+                                    <small class="text-muted">{{ product.product__barcode|default:"Sin código" }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ product.total_quantity }}</span>
+                                </td>
+                                <td class="text-end fw-bold">${{ product.total_revenue|floatformat:0 }}</td>
+                                <td class="text-end text-muted">${{ product.average_price|floatformat:0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-box fa-3x mb-3"></i>
+                    <p>No hay datos de productos vendidos en este período</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Ventas por método de pago -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Ventas por Método de Pago
+                </h5>
+                
+                {% if sales_by_payment %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Método de Pago</th>
+                                <th class="text-center">Cantidad de Transacciones</th>
+                                <th class="text-end">Total Recaudado</th>
+                                <th class="text-end">Porcentaje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in sales_by_payment %}
+                            <tr>
+                                <td>
+                                    <span class="badge badge-payment badge-{{ payment.payment_method }}">
+                                        {{ payment.payment_method|title }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ payment.count }}</span>
+                                </td>
+                                <td class="text-end fw-bold">${{ payment.total|floatformat:0 }}</td>
+                                <td class="text-end text-muted">
+                                    {{ payment.percentage|floatformat:1 }}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-credit-card fa-3x mb-3"></i>
+                    <p>No hay datos de métodos de pago en este período</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen ejecutivo -->
+    <div class="row">
+        <div class="col-12">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Resumen Ejecutivo
+                </h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Rendimiento del Período</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>{{ total_sales }}</strong> ventas realizadas
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-dollar-sign text-primary me-2"></i>
+                                <strong>${{ total_revenue|floatformat:0 }}</strong> en ingresos
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-chart-line text-info me-2"></i>
+                                <strong>${{ average_sale|floatformat:0 }}</strong> promedio por venta
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Métodos de Pago Preferidos</h6>
+                        {% if sales_by_payment %}
+                            {% for payment in sales_by_payment|slice:":3" %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge badge-payment badge-{{ payment.payment_method }}">
+                                    {{ payment.payment_method|title }}
+                                </span>
+                                <span class="fw-bold">{{ payment.percentage|floatformat:1 }}%</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No hay datos disponibles</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si Chart.js está disponible
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js no está cargado!');
+        return;
+    }
+    console.log('Chart.js está disponible:', Chart);
+    
+    // Datos para los gráficos
+    const paymentData = {{ sales_by_payment|safe }};
+    const dailyData = {{ sales_last_7_days|safe }};
+    
+    console.log('Payment Data:', paymentData);
+    console.log('Daily Data:', dailyData);
+    
+    // Gráfico de métodos de pago
+    const paymentChartElement = document.getElementById('paymentChart');
+    console.log('Payment Chart Element:', paymentChartElement);
+    
+    if (paymentChartElement) {
+        console.log('Canvas dimensions:', paymentChartElement.width, 'x', paymentChartElement.height);
+        console.log('Canvas style:', paymentChartElement.style.cssText);
+    }
+    
+    if (paymentChartElement && paymentData && paymentData.length > 0) {
+        try {
+            const paymentCtx = paymentChartElement.getContext('2d');
+            console.log('Payment Context:', paymentCtx);
+            
+            // Preparar datos para el gráfico
+            const labels = [];
+            const data = [];
+            const colors = [];
+            
+            paymentData.forEach((item, index) => {
+                labels.push(item.payment_method.charAt(0).toUpperCase() + item.payment_method.slice(1));
+                
+                // Convertir a número de forma segura
+                const totalValue = typeof item.total === 'string' ? parseFloat(item.total) : Number(item.total);
+                data.push(isNaN(totalValue) ? 0 : totalValue);
+                
+                // Asignar colores según el método de pago
+                switch(item.payment_method) {
+                    case 'efectivo':
+                        colors.push('#28a745');
+                        break;
+                    case 'debito':
+                        colors.push('#007bff');
+                        break;
+                    case 'transferencia':
+                        colors.push('#6f42c1');
+                        break;
+                    default:
+                        colors.push('#ffc107');
+                }
+            });
+            
+            console.log('Labels:', labels);
+            console.log('Data:', data);
+            console.log('Colors:', colors);
+            
+            const chart = new Chart(paymentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Chart created successfully:', chart);
+        } catch (error) {
+            console.error('Error creating payment chart:', error);
+            paymentChartElement.style.display = 'none';
+            const container = paymentChartElement.closest('.chart-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                        <p>Error al cargar el gráfico: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    } else {
+        console.log('No payment data available or chart element not found');
+        console.log('Payment Data:', paymentData);
+        console.log('Payment Chart Element:', paymentChartElement);
+        
+        // Crear gráfico de prueba si no hay datos
+        if (paymentChartElement) {
+            try {
+                const paymentCtx = paymentChartElement.getContext('2d');
+                console.log('Creating test chart...');
+                
+                const testChart = new Chart(paymentCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Efectivo', 'Débito', 'Transferencia'],
+                        datasets: [{
+                            data: [1000, 500, 300],
+                            backgroundColor: ['#28a745', '#007bff', '#6f42c1'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#667eea',
+                                borderWidth: 1,
+                                cornerRadius: 8
+                            }
+                        }
+                    }
+                });
+                
+                console.log('Test chart created successfully:', testChart);
+                
+                // Agregar mensaje de que son datos de prueba
+                const container = paymentChartElement.closest('.chart-container');
+                if (container) {
+                    const title = container.querySelector('h5');
+                    if (title) {
+                        title.innerHTML += ' <small class="text-muted">(Datos de prueba)</small>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating test chart:', error);
+                paymentChartElement.style.display = 'none';
+                const container = paymentChartElement.closest('.chart-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                            <p>Error al cargar el gráfico: ${error.message}</p>
+                            <small>Datos disponibles: ${paymentData ? paymentData.length : 0}</small>
+                        </div>
+                    `;
+                }
+            }
+        }
+    }
+    
+    // Gráfico de ventas diarias
+    if (dailyData && dailyData.length > 0) {
+        const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+        
+        // Procesar datos de forma segura
+        const dailyLabels = dailyData.map(item => item.date);
+        const dailyValues = dailyData.map(item => {
+            const value = typeof item.total === 'string' ? parseFloat(item.total) : Number(item.total);
+            return isNaN(value) ? 0 : value;
+        });
+        
+        new Chart(dailyCtx, {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Ventas ($)',
+                    data: dailyValues,
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: '#667eea',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#667eea',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Ventas: $' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#6c757d',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#6c757d',
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

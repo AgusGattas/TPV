@@ -672,22 +672,65 @@ def reports(request):
         total=Sum('total_final')
     )
     
+    # Calcular porcentajes para métodos de pago
+    for payment in sales_by_payment:
+        payment['percentage'] = float((payment['total'] / total_revenue * 100) if total_revenue > 0 else 0)
+        payment['total'] = float(payment['total'])
+        payment['count'] = int(payment['count'])
+    
     # Productos más vendidos
     top_products = SaleItem.objects.filter(
         sale__created_at__date__range=[date_from, date_to],
         sale__is_active=True
-    ).values('product__name').annotate(
+    ).values('product__name', 'product__barcode').annotate(
         total_quantity=Sum('quantity'),
         total_revenue=Sum('subtotal')
     ).order_by('-total_quantity')[:10]
     
+    # Calcular precio promedio por producto
+    for product in top_products:
+        product['average_price'] = float((product['total_revenue'] / product['total_quantity']) if product['total_quantity'] > 0 else 0)
+        product['total_revenue'] = float(product['total_revenue'])
+        product['total_quantity'] = int(product['total_quantity'])
+    
+    # Ventas por día en el período seleccionado
+    sales_last_7_days = []
+    from datetime import datetime
+    start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+    end_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+    
+    current_date = start_date
+    while current_date <= end_date:
+        daily_sales = Sale.objects.filter(
+            created_at__date=current_date,
+            is_active=True
+        ).aggregate(total=Sum('total_final'))['total'] or 0
+        sales_last_7_days.append({
+            'date': current_date.strftime('%d/%m'),
+            'total': float(daily_sales)
+        })
+        current_date += timedelta(days=1)
+    
+    # Calcular promedios
+    average_sale = float((total_revenue / total_sales) if total_sales > 0 else 0)
+    
+    # Calcular promedio diario (días en el período)
+    from datetime import datetime
+    start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+    end_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+    days_in_period = (end_date - start_date).days + 1
+    daily_average = float((total_sales / days_in_period) if days_in_period > 0 else 0)
+    
     context = {
         'date_from': date_from,
         'date_to': date_to,
-        'total_sales': total_sales,
-        'total_revenue': total_revenue,
-        'sales_by_payment': sales_by_payment,
-        'top_products': top_products,
+        'total_sales': int(total_sales),
+        'total_revenue': float(total_revenue),
+        'average_sale': average_sale,
+        'daily_average': daily_average,
+        'sales_by_payment': list(sales_by_payment),  # Convertir a lista para JSON
+        'top_products': list(top_products),  # Convertir a lista para JSON
+        'sales_last_7_days': sales_last_7_days,
     }
     
     return render(request, 'frontend/reports/index.html', context)
