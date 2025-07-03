@@ -636,13 +636,146 @@ def users_list(request):
         messages.error(request, 'No tienes permisos para acceder a esta sección')
         return redirect('dashboard')
     
+    # Filtros
+    search = request.GET.get('search', '')
+    role_filter = request.GET.get('role_filter', '')
+    order_by = request.GET.get('order_by', '-date_joined')
+    
+    # Query base
     users = User.objects.filter(is_active=True)
     
+    # Aplicar filtros
+    if search:
+        users = users.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(username__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    if role_filter:
+        users = users.filter(role=role_filter)
+    
+    # Ordenamiento
+    if order_by:
+        users = users.order_by(order_by)
+    
+    # Paginación
+    paginator = Paginator(users, 12)  # 12 usuarios por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'users': users,
+        'users': page_obj,
+        'search': search,
+        'role_filter': role_filter,
+        'order_by': order_by,
     }
     
     return render(request, 'frontend/users/list.html', context)
+
+
+@login_required
+def user_create(request):
+    """Crear nuevo usuario (solo para administradores)"""
+    
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            role = request.POST.get('role', 'vendedor')
+            password1 = request.POST.get('password1')
+            password2 = request.POST.get('password2')
+            
+            # Validaciones básicas
+            if not username or not email or not password1:
+                messages.error(request, 'Username, email y contraseña son obligatorios')
+                return render(request, 'frontend/users/create.html')
+            
+            if password1 != password2:
+                messages.error(request, 'Las contraseñas no coinciden')
+                return render(request, 'frontend/users/create.html')
+            
+            if len(password1) < 8:
+                messages.error(request, 'La contraseña debe tener al menos 8 caracteres')
+                return render(request, 'frontend/users/create.html')
+            
+            # Verificar si el username ya existe
+            if User.objects.filter(username=username).exists():
+                messages.error(request, 'El username ya está en uso')
+                return render(request, 'frontend/users/create.html')
+            
+            # Verificar si el email ya existe
+            if User.objects.filter(email=email).exists():
+                messages.error(request, 'El email ya está registrado')
+                return render(request, 'frontend/users/create.html')
+            
+            # Crear el usuario
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password1,
+                first_name=first_name,
+                last_name=last_name,
+                role=role
+            )
+            
+            messages.success(request, f'Usuario "{user.username}" creado exitosamente')
+            return redirect('frontend:users_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear el usuario: {str(e)}')
+            return render(request, 'frontend/users/create.html')
+    
+    return render(request, 'frontend/users/create.html')
+
+
+@login_required
+def user_detail(request, pk):
+    """Detalle de un usuario (solo para administradores)"""
+    
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, pk=pk, is_active=True)
+    
+    # Ventas realizadas por el usuario
+    user_sales = Sale.objects.filter(
+        user=user,
+        is_active=True
+    ).order_by('-created_at')[:10]
+    
+    # Estadísticas del usuario
+    total_sales = Sale.objects.filter(user=user, is_active=True).count()
+    total_revenue = Sale.objects.filter(
+        user=user, 
+        is_active=True
+    ).aggregate(total=Sum('total_final'))['total'] or 0
+    
+    # Promedio por venta
+    average_sale = float((total_revenue / total_sales) if total_sales > 0 else 0)
+    
+    # Última actividad
+    last_sale = Sale.objects.filter(user=user, is_active=True).order_by('-created_at').first()
+    
+    context = {
+        'user_detail': user,
+        'user_sales': user_sales,
+        'total_sales': total_sales,
+        'total_revenue': float(total_revenue),
+        'average_sale': average_sale,
+        'last_sale': last_sale,
+    }
+    
+    return render(request, 'frontend/users/detail.html', context)
 
 
 @login_required

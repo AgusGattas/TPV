@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Usuarios - TodoBrilla{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .user-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .role-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0 auto 1rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    
+    .status-active {
+        background-color: #28a745;
+    }
+    
+    .status-inactive {
+        background-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Usuarios</h1>
+        <a href="{% url 'frontend:user_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Usuario
+        </a>
+    </div>
+
+    <!-- Búsqueda y filtros -->
+    <div class="search-box">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nombre, email, username...">
+            </div>
+            <div class="col-md-3">
+                <label for="role_filter" class="form-label">Filtrar por Rol</label>
+                <select class="form-select" id="role_filter" name="role_filter">
+                    <option value="">Todos los roles</option>
+                    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Administradores</option>
+                    <option value="vendedor" {% if role_filter == 'vendedor' %}selected{% endif %}>Vendedores</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="order_by" class="form-label">Ordenar por</label>
+                <select class="form-select" id="order_by" name="order_by">
+                    <option value="-date_joined" {% if order_by == '-date_joined' %}selected{% endif %}>Más Recientes</option>
+                    <option value="first_name" {% if order_by == 'first_name' %}selected{% endif %}>Nombre A-Z</option>
+                    <option value="username" {% if order_by == 'username' %}selected{% endif %}>Username A-Z</option>
+                    <option value="role" {% if order_by == 'role' %}selected{% endif %}>Rol</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de usuarios -->
+    {% if users %}
+        <div class="row">
+            {% for user in users %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card user-card h-100">
+                    <div class="card-body text-center">
+                        <!-- Avatar del usuario -->
+                        <div class="user-avatar">
+                            {% if user.first_name and user.last_name %}
+                                {{ user.first_name|first }}{{ user.last_name|first }}
+                            {% elif user.first_name %}
+                                {{ user.first_name|first }}
+                            {% elif user.username %}
+                                {{ user.username|first|upper }}
+                            {% else %}
+                                U
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Badge de rol -->
+                        <div class="role-badge">
+                            {% if user.is_admin %}
+                                <span class="badge bg-danger">Admin</span>
+                            {% else %}
+                                <span class="badge bg-info">Vendedor</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Información del usuario -->
+                        <h5 class="card-title mb-1">
+                            {% if user.first_name and user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% elif user.first_name %}
+                                {{ user.first_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </h5>
+                        
+                        <p class="card-text text-muted small mb-2">
+                            <i class="fas fa-user me-1"></i>{{ user.username }}
+                        </p>
+                        
+                        <p class="card-text text-muted small mb-3">
+                            <i class="fas fa-envelope me-1"></i>{{ user.email }}
+                        </p>
+                        
+                        <!-- Estado del usuario -->
+                        <div class="mb-3">
+                            <span class="status-indicator {% if user.is_active %}status-active{% else %}status-inactive{% endif %}"></span>
+                            <span class="small {% if user.is_active %}text-success{% else %}text-danger{% endif %}">
+                                {% if user.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </div>
+                        
+                        <!-- Información adicional -->
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="text-muted small">Miembro desde</div>
+                                <div class="small">{{ user.date_joined|date:"M Y" }}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-muted small">Último acceso</div>
+                                <div class="small">
+                                    {% if user.last_login %}
+                                        {{ user.last_login|date:"d/m/Y" }}
+                                    {% else %}
+                                        Nunca
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Acciones -->
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'frontend:user_detail' user.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>Ver
+                            </a>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="alert('Función de editar próximamente disponible')">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if users.has_other_pages %}
+        <nav aria-label="Navegación de usuarios">
+            <ul class="pagination justify-content-center">
+                {% if users.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ users.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role_filter={{ role_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in users.paginator.page_range %}
+                    {% if users.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role_filter={{ role_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if users.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ users.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role_filter %}&role_filter={{ role_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    {% else %}
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No se encontraron usuarios</h4>
+            <p class="text-muted">Intenta ajustar los filtros de búsqueda.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Búsqueda en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    const roleFilter = document.getElementById('role_filter');
+    const orderBy = document.getElementById('order_by');
+    
+    // Función para actualizar la URL con los filtros
+    function updateFilters() {
+        const params = new URLSearchParams(window.location.search);
+        
+        if (searchInput.value) {
+            params.set('search', searchInput.value);
+        } else {
+            params.delete('search');
+        }
+        
+        if (roleFilter.value) {
+            params.set('role_filter', roleFilter.value);
+        } else {
+            params.delete('role_filter');
+        }
+        
+        if (orderBy.value) {
+            params.set('order_by', orderBy.value);
+        } else {
+            params.delete('order_by');
+        }
+        
+        // Mantener la página actual
+        const currentPage = params.get('page');
+        if (currentPage) {
+            params.set('page', currentPage);
+        }
+        
+        const newUrl = window.location.pathname + '?' + params.toString();
+        window.history.pushState({}, '', newUrl);
+    }
+    
+    // Event listeners para filtros
+    roleFilter.addEventListener('change', updateFilters);
+    orderBy.addEventListener('change', updateFilters);
+    
+    // Búsqueda con debounce
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(updateFilters, 500);
+    });
+});
+</script>
+{% endblock %} 

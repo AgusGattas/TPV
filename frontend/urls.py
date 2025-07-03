@@ -43,6 +43,8 @@ urlpatterns = [
     
     # Usuarios (solo admin)
     path('usuarios/', views.users_list, name='users_list'),
+    path('usuarios/crear/', views.user_create, name='user_create'),
+    path('usuarios/<int:pk>/', views.user_detail, name='user_detail'),
     
     # Reportes (solo admin)
     path('reportes/', views.reports, name='reports'),

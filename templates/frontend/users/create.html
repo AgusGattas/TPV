@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crear Usuario - TodoBrilla{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .form-header i {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .password-strength {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .strength-weak {
+        color: #dc3545;
+    }
+    
+    .strength-medium {
+        color: #ffc107;
+    }
+    
+    .strength-strong {
+        color: #28a745;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Crear Nuevo Usuario</h1>
+                <a href="{% url 'frontend:users_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver a Usuarios
+                </a>
+            </div>
+
+            <!-- Formulario -->
+            <div class="form-container">
+                <div class="form-header">
+                    <i class="fas fa-user-plus"></i>
+                    <h2 class="h4 mb-2">Información del Usuario</h2>
+                    <p class="text-muted mb-0">Complete los datos para crear un nuevo usuario</p>
+                </div>
+
+                <form method="post" id="userForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Información básica -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="username" class="form-label required-field">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       value="{{ form.username.value|default:'' }}" required
+                                       placeholder="Nombre de usuario único">
+                                <div class="form-text">El username debe ser único y no puede contener espacios.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="email" class="form-label required-field">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ form.email.value|default:'' }}" required
+                                       placeholder="correo@ejemplo.com">
+                                <div class="form-text">Se usará para notificaciones y recuperación de contraseña.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="first_name" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ form.first_name.value|default:'' }}"
+                                       placeholder="Nombre del usuario">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="last_name" class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ form.last_name.value|default:'' }}"
+                                       placeholder="Apellido del usuario">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role" class="form-label">Rol</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="vendedor" {% if form.role.value == 'vendedor' %}selected{% endif %}>Vendedor</option>
+                            <option value="admin" {% if form.role.value == 'admin' %}selected{% endif %}>Administrador</option>
+                        </select>
+                        <div class="form-text">
+                            <strong>Vendedor:</strong> Puede realizar ventas y gestionar productos.<br>
+                            <strong>Administrador:</strong> Acceso completo al sistema, incluyendo usuarios y reportes.
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Contraseñas -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-lock me-2"></i>Contraseña
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="password1" class="form-label required-field">Contraseña</label>
+                                <input type="password" class="form-control" id="password1" name="password1" 
+                                       required minlength="8"
+                                       placeholder="Mínimo 8 caracteres">
+                                <div class="password-strength" id="passwordStrength"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="password2" class="form-label required-field">Confirmar Contraseña</label>
+                                <input type="password" class="form-control" id="password2" name="password2" 
+                                       required minlength="8"
+                                       placeholder="Repita la contraseña">
+                                <div class="form-text" id="passwordMatch"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="{% url 'frontend:users_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <i class="fas fa-save me-2"></i>Crear Usuario
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password1 = document.getElementById('password1');
+    const password2 = document.getElementById('password2');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const passwordMatch = document.getElementById('passwordMatch');
+    const form = document.getElementById('userForm');
+    
+    // Función para evaluar la fortaleza de la contraseña
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        let feedback = '';
+        
+        if (password.length >= 8) strength++;
+        if (password.match(/[a-z]/)) strength++;
+        if (password.match(/[A-Z]/)) strength++;
+        if (password.match(/[0-9]/)) strength++;
+        if (password.match(/[^a-zA-Z0-9]/)) strength++;
+        
+        if (strength < 3) {
+            feedback = '<span class="strength-weak"><i class="fas fa-exclamation-triangle me-1"></i>Débil</span>';
+        } else if (strength < 5) {
+            feedback = '<span class="strength-medium"><i class="fas fa-info-circle me-1"></i>Media</span>';
+        } else {
+            feedback = '<span class="strength-strong"><i class="fas fa-check-circle me-1"></i>Fuerte</span>';
+        }
+        
+        return feedback;
+    }
+    
+    // Función para verificar si las contraseñas coinciden
+    function checkPasswordMatch() {
+        const p1 = password1.value;
+        const p2 = password2.value;
+        
+        if (p2 === '') {
+            passwordMatch.innerHTML = '';
+            return;
+        }
+        
+        if (p1 === p2) {
+            passwordMatch.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Las contraseñas coinciden</span>';
+        } else {
+            passwordMatch.innerHTML = '<span class="text-danger"><i class="fas fa-times me-1"></i>Las contraseñas no coinciden</span>';
+        }
+    }
+    
+    // Event listeners
+    password1.addEventListener('input', function() {
+        passwordStrength.innerHTML = checkPasswordStrength(this.value);
+        if (password2.value) {
+            checkPasswordMatch();
+        }
+    });
+    
+    password2.addEventListener('input', checkPasswordMatch);
+    
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        const p1 = password1.value;
+        const p2 = password2.value;
+        
+        if (p1 !== p2) {
+            e.preventDefault();
+            alert('Las contraseñas no coinciden');
+            password2.focus();
+            return false;
+        }
+        
+        if (p1.length < 8) {
+            e.preventDefault();
+            alert('La contraseña debe tener al menos 8 caracteres');
+            password1.focus();
+            return false;
+        }
+    });
+    
+    // Validación en tiempo real del username
+    const username = document.getElementById('username');
+    username.addEventListener('input', function() {
+        this.value = this.value.replace(/\s/g, ''); // Eliminar espacios
+    });
+});
+</script>
+{% endblock %} 
