@@ -63,11 +63,14 @@
 {% block content %}
 <div class="container-fluid">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">Usuarios</h1>
-        <a href="{% url 'frontend:user_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Nuevo Usuario
-        </a>
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-users title-icon"></i>
+            <h1>Usuarios</h1>
+        </div>
+        <div class="title-subtitle">
+            Administración de usuarios y permisos
+        </div>
     </div>
 
     <!-- Búsqueda y filtros -->

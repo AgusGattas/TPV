@@ -69,11 +69,14 @@
 {% block content %}
 <div class="container-fluid">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">Gestión de Caja</h1>
-        <a href="{% url 'frontend:open_cashbox' %}" class="btn btn-success">
-            <i class="fas fa-plus me-2"></i>Abrir Caja
-        </a>
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-cash-register title-icon"></i>
+            <h1>Gestión de Caja</h1>
+        </div>
+        <div class="title-subtitle">
+            Control y movimientos de caja diaria
+        </div>
     </div>
 
     <!-- Lista de cajas -->
