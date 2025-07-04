@@ -143,8 +143,16 @@
         <div class="col-md-3">
             <div class="product-stats">
                 <div class="stat-item">
-                    <div class="stat-value">{{ product.unit|default:"unidad" }}</div>
-                    <div class="stat-label">Unidad</div>
+                    <div class="stat-value" id="margin-stat" 
+                         data-cost-price="{{ product.cost_price|default:0 }}" 
+                         data-sale-price="{{ product.price|default:0 }}">
+                        {% if product.cost_price and product.price and product.cost_price > 0 %}
+                            <span id="margin-stat-value"></span>%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">Margen de Ganancia</div>
                 </div>
             </div>
         </div>
@@ -326,14 +334,8 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="text-muted">Margen de Ganancia:</td>
-                                <td>
-                                    {% if product.cost_price and product.price %}
-                                        {% widthratio product.price|add:"-"|add:product.cost_price product.cost_price 100 %}%
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
+                                <td class="text-muted">Unidad:</td>
+                                <td>{{ product.unit|default:"unidad" }}</td>
                             </tr>
                         </table>
                     </div>
@@ -342,4 +344,23 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular margen de ganancia para la estadística principal
+    const marginStat = document.getElementById('margin-stat');
+    if (marginStat) {
+        const costPrice = parseFloat(marginStat.dataset.costPrice);
+        const salePrice = parseFloat(marginStat.dataset.salePrice);
+        
+        if (costPrice > 0 && salePrice > 0) {
+            const margin = ((salePrice - costPrice) / costPrice) * 100;
+            const marginElement = document.getElementById('margin-stat-value');
+            if (marginElement) {
+                marginElement.textContent = margin.toFixed(1);
+            }
+        }
+    }
+});
+</script>
 {% endblock %} 

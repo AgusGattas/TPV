@@ -109,10 +109,6 @@ class SaleItem(BaseModel):
         if self.unit_price is None:
             self.unit_price = self.product.price
         
-        # Validar stock disponible antes de guardar
-        if self.pk is None:  # Solo validar en creación
-            self.validate_stock_availability()
-        
         # Calcular subtotal
         self.calculate_subtotal()
         

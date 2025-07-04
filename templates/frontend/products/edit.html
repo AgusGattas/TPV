@@ -101,17 +101,7 @@
             </div>
 
             <div class="row">
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="price" class="form-label">Precio de Venta *</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="price" name="price" value="{{ product.price }}" step="0.01" min="0" required>
-                        </div>
-                        <small class="text-muted">Valor actual: {{ product.price }}</small>
-                    </div>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="mb-3">
                         <label for="cost_price" class="form-label">Precio de Costo</label>
                         <div class="input-group">
@@ -121,7 +111,28 @@
                         <small class="text-muted">Valor actual: {{ product.cost_price }}</small>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="margin_percentage" class="form-label">Margen (%)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="margin_percentage" 
+                                   step="0.1" min="0" value="100" placeholder="100">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">Porcentaje sobre el costo</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Precio de Venta *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="price" name="price" value="{{ product.price }}" step="0.01" min="0" required>
+                        </div>
+                        <small class="text-muted">Se calcula automáticamente</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="mb-3">
                         <label for="min_stock" class="form-label">Stock Mínimo</label>
                         <input type="number" class="form-control" id="min_stock" name="min_stock" value="{{ product.min_stock }}" min="0">
@@ -238,22 +249,38 @@ document.getElementById('imagePreview').addEventListener('click', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-cálculo del margen de ganancia
+    // Función para calcular el precio de venta automáticamente
+    function calculatePrice() {
+        const costPrice = parseFloat(document.getElementById('cost_price').value) || 0;
+        const marginPercentage = parseFloat(document.getElementById('margin_percentage').value) || 0;
+        
+        if (costPrice > 0 && marginPercentage > 0) {
+            const calculatedPrice = costPrice * (1 + marginPercentage / 100);
+            document.getElementById('price').value = calculatedPrice.toFixed(2);
+        }
+    }
+    
+    // Calcular precio cuando cambie el costo o el margen
+    document.getElementById('cost_price').addEventListener('input', calculatePrice);
+    document.getElementById('margin_percentage').addEventListener('input', calculatePrice);
+    
+    // Calcular margen inicial basado en los valores actuales
     const priceInput = document.getElementById('price');
     const costInput = document.getElementById('cost_price');
+    const marginInput = document.getElementById('margin_percentage');
     
-    function calculateMargin() {
+    function calculateInitialMargin() {
         const price = parseFloat(priceInput.value) || 0;
         const cost = parseFloat(costInput.value) || 0;
         
         if (cost > 0 && price > 0) {
             const margin = ((price - cost) / cost) * 100;
-            console.log('Margen de ganancia:', margin.toFixed(2) + '%');
+            marginInput.value = margin.toFixed(1);
         }
     }
     
-    priceInput.addEventListener('input', calculateMargin);
-    costInput.addEventListener('input', calculateMargin);
+    // Calcular margen inicial al cargar la página
+    calculateInitialMargin();
 });
 </script>
 {% endblock %} 

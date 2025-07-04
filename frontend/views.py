@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -202,11 +203,12 @@ def product_create(request):
                 return JsonResponse({
                     'success': True,
                     'message': f'Producto "{product.name}" creado exitosamente',
-                    'product_id': product.id
+                    'product_id': product.id,
+                    'redirect_url': reverse('frontend:product_detail', kwargs={'pk': product.id})
                 })
             
             messages.success(request, f'Producto "{product.name}" creado exitosamente')
-            return redirect('frontend:products_list')
+            return redirect('frontend:product_detail', pk=product.id)
             
         except Exception as e:
             error_message = f'Error al crear el producto: {str(e)}'
@@ -266,7 +268,7 @@ def product_edit(request, pk):
                 )
             
             messages.success(request, f'Producto "{product.name}" actualizado exitosamente')
-            return redirect('frontend:products_list')
+            return redirect('frontend:product_detail', pk=product.id)
             
         except Exception as e:
             messages.error(request, f'Error al actualizar el producto: {str(e)}')
@@ -356,7 +358,21 @@ def sale_create(request):
             for item_data in data['items']:
                 product = Product.objects.get(id=item_data['product_id'])
                 
-                SaleItem.objects.create(
+                # Verificar y obtener stock
+                stock, created = Stock.objects.get_or_create(
+                    product=product,
+                    defaults={'current_quantity': 0}
+                )
+                
+                # Verificar stock disponible
+                if stock.current_quantity < item_data['quantity']:
+                    raise ValueError(
+                        f"Stock insuficiente para '{product.name}'. "
+                        f"Disponible: {stock.current_quantity}, Solicitado: {item_data['quantity']}"
+                    )
+                
+                # Crear el item de venta
+                sale_item = SaleItem.objects.create(
                     sale=sale,
                     product=product,
                     quantity=item_data['quantity'],
@@ -364,8 +380,7 @@ def sale_create(request):
                     discount_percentage=item_data.get('discount_percentage', 0)
                 )
                 
-                # Actualizar stock
-                stock = product.stock_info
+                # Reducir stock
                 stock.remove_stock(
                     quantity=item_data['quantity'],
                     reason=f"Venta #{sale.id}"
@@ -386,9 +401,8 @@ def sale_create(request):
     
     # Obtener productos para el formulario
     products = Product.objects.filter(
-        is_active=True,
-        stock_info__current_quantity__gt=0
-    ).select_related('stock_info')
+        is_active=True
+    ).prefetch_related('images')
     
     context = {
         'current_cashbox': current_cashbox,
@@ -414,9 +428,12 @@ def stock_list(request):
     
     stock_filter = request.GET.get('stock_filter', '')
     if stock_filter == 'low':
-        stocks = stocks.filter(stock_info__current_quantity__lte=F('product__min_stock'))
+        stocks = stocks.filter(
+            current_quantity__lte=F('product__min_stock'),
+            current_quantity__gt=0
+        )
     elif stock_filter == 'out':
-        stocks = stocks.filter(stock_info__current_quantity=0)
+        stocks = stocks.filter(current_quantity=0)
     
     context = {
         'stocks': stocks,
@@ -858,10 +875,10 @@ def reports(request):
     ).aggregate(total=Sum('amount'))['total'] or 0
     
     # 4. COSTO DE MERCADERÍA VENDIDA (CMV) y porcentaje
-    cmv_percentage = float((total_cmv / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
+    cmv_percentage = float((Decimal(str(total_cmv)) / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
     
     # 5. RENTABILIDAD: Porcentaje de utilidad sobre ventas
-    profitability_percentage = float((total_utility / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
+    profitability_percentage = float((Decimal(str(total_utility)) / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
     
     # Ventas por método de pago
     sales_by_payment = sales_period.values('payment_method').annotate(
@@ -871,7 +888,7 @@ def reports(request):
     
     # Calcular porcentajes para métodos de pago
     for payment in sales_by_payment:
-        payment['percentage'] = float((payment['total'] / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
+        payment['percentage'] = float((Decimal(str(payment['total'])) / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
         payment['total'] = float(payment['total'])
         payment['count'] = int(payment['count'])
     
@@ -886,7 +903,7 @@ def reports(request):
     
     # Calcular precio promedio por producto
     for product in top_products:
-        product['average_price'] = float((product['total_revenue'] / product['total_quantity']) if product['total_quantity'] > 0 else 0)
+        product['average_price'] = float((Decimal(str(product['total_revenue'])) / product['total_quantity']) if product['total_quantity'] > 0 else 0)
         product['total_revenue'] = float(product['total_revenue'])
         product['total_quantity'] = int(product['total_quantity'])
     

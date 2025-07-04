@@ -19,25 +19,6 @@ def create_stock_on_product_creation(sender, instance, created, **kwargs):
         )
 
 
-@receiver(post_save, sender='sales.SaleItem')
-def update_stock_on_sale_item(sender, instance, created, **kwargs):
-    """Actualizar stock cuando se crea un item de venta"""
-    if created and instance.sale.is_active:
-        # Asegurar que existe un objeto Stock
-        stock_obj, created_stock = Stock.objects.get_or_create(
-            product=instance.product,
-            defaults={
-                'current_quantity': 0,
-                'average_cost': instance.product.cost_price
-            }
-        )
-        
-        # Remover stock
-        stock_obj.remove_stock(
-            quantity=instance.quantity,
-            reason=f'Venta #{instance.sale.ticket_number}'
-        )
-
 
 @receiver(post_save, sender='sales.Sale')
 def reverse_stock_on_sale_cancel(sender, instance, **kwargs):

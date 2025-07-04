@@ -96,6 +96,7 @@
                                             <input type="number" class="form-control" id="price" name="price" 
                                                    step="0.01" min="0" required>
                                         </div>
+
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -227,6 +228,21 @@ document.getElementById('imagePreview').addEventListener('click', function() {
     }
 });
 
+// Función para calcular el precio de venta automáticamente
+function calculatePrice() {
+    const costPrice = parseFloat(document.getElementById('cost_price').value) || 0;
+    const marginPercentage = parseFloat(document.getElementById('margin_percentage').value) || 0;
+    
+    if (costPrice > 0 && marginPercentage > 0) {
+        const calculatedPrice = costPrice * (1 + marginPercentage / 100);
+        document.getElementById('price').value = calculatedPrice.toFixed(2);
+    }
+}
+
+// Calcular precio cuando cambie el costo o el margen
+document.getElementById('cost_price').addEventListener('input', calculatePrice);
+document.getElementById('margin_percentage').addEventListener('input', calculatePrice);
+
 // Envío del formulario
 document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -278,9 +294,13 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
             `;
             document.querySelector('.main-content').insertAdjacentHTML('afterbegin', alertHtml);
             
-            // Redirigir a la lista de productos
+            // Redirigir al detalle del producto
             setTimeout(() => {
-                window.location.href = '{% url "frontend:products_list" %}';
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    window.location.href = '{% url "frontend:products_list" %}';
+                }
             }, 1500);
         } else {
             throw new Error(data.message);
@@ -336,4 +356,5 @@ document.getElementById('initial_stock').addEventListener('input', function() {
     }
 });
 </script>
+{% endblock %} 
 {% endblock %} 
