@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import json
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from decimal import Decimal
 
 from products.models import Product
@@ -972,4 +972,11 @@ def login_view(request):
         else:
             messages.error(request, 'Usuario o contraseña incorrectos')
     
-    return render(request, 'frontend/login.html') 
+    return render(request, 'frontend/login.html')
+
+
+def logout_view(request):
+    """Vista de logout para el frontend"""
+    logout(request)
+    messages.success(request, 'Has cerrado sesión exitosamente')
+    return redirect('frontend:login') 
