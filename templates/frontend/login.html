@@ -1,124 +1,165 @@
-{% extends 'frontend/base.html' %}
-
-{% block page_title %}Login - TodoBrilla{% endblock %}
-
-{% block frontend_extra_css %}
-<style>
-    body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - TodoBrilla</title>
     
-    .login-container {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        padding: 3rem;
-        width: 100%;
-        max-width: 400px;
-    }
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    .login-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .login-header h1 {
-        color: #333;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-    
-    .login-header p {
-        color: #666;
-        margin: 0;
-    }
-    
-    .form-floating {
-        margin-bottom: 1rem;
-    }
-    
-    .btn-login {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 10px;
-        padding: 12px;
-        font-weight: 600;
-        width: 100%;
-        margin-top: 1rem;
-    }
-    
-    .btn-login:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    
-    .alert {
-        border-radius: 10px;
-        border: none;
-    }
-</style>
-{% endblock %}
-
-{% block frontend_content %}
-<div class="login-container">
-    <div class="login-header">
-        <h1>TodoBrilla</h1>
-        <p>Sistema de Gestión de Ventas</p>
-    </div>
-    
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        
-        <div class="form-floating">
-            <input type="text" class="form-control" id="username" name="username" placeholder="Usuario" required>
-            <label for="username">Usuario</label>
-        </div>
-        
-        <div class="form-floating">
-            <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
-            <label for="password">Contraseña</label>
-        </div>
-        
-        <button type="submit" class="btn btn-primary btn-login">
-            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
-        </button>
-    </form>
-    
-    <div class="text-center mt-3">
-        <small class="text-muted">
-            <i class="fas fa-info-circle me-1"></i>
-            Usuario: useradmin | Contraseña: admin123
-        </small>
-    </div>
-</div>
-{% endblock %}
-
-{% block frontend_extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-focus en el campo de usuario
-    document.getElementById('username').focus();
-    
-    // Auto-submit al presionar Enter
-    document.querySelector('form').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            this.submit();
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
         }
-    });
-});
-</script>
-{% endblock %} 
+        
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .brand-logo {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .brand-subtitle {
+            color: #666;
+            font-size: 1rem;
+            margin: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-control {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 1rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-1px);
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        
+
+        
+        /* Responsive */
+        @media (max-width: 576px) {
+            .login-container {
+                padding: 2rem;
+                margin: 10px;
+            }
+            
+            .brand-logo {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="brand-logo">
+                <i class="fas fa-store me-2"></i>TodoBrilla
+            </div>
+            <p class="brand-subtitle">Sistema de Gestión de Ventas</p>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username" class="form-label">Usuario</label>
+                <input type="text" class="form-control" id="username" name="username" 
+                       placeholder="Ingrese su usuario" required autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" 
+                       placeholder="Ingrese su contraseña" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+            </button>
+        </form>
+        
+
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus en el campo de usuario
+            document.getElementById('username').focus();
+            
+            // Auto-submit al presionar Enter
+            document.getElementById('loginForm').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.submit();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
