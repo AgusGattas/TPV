@@ -1,8 +1,9 @@
-{% extends 'frontend/base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
-{% block page_title %}Editar {{ product.name }}{% endblock %}
+{% block title %}Editar {{ product.name }} - TodoBrilla{% endblock %}
 
-{% block frontend_extra_css %}
+{% block extra_css %}
 <style>
     .form-container {
         background: white;
@@ -18,10 +19,31 @@
         padding: 1.5rem;
         margin: -2rem -2rem 2rem -2rem;
     }
+    
+    .image-preview {
+        width: 100%;
+        height: 200px;
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-size: cover;
+        background-position: center;
+        transition: all 0.3s ease;
+    }
+    
+    .image-preview:hover {
+        border-color: #0d6efd;
+    }
+    
+    .image-preview.has-image {
+        border-style: solid;
+    }
 </style>
 {% endblock %}
 
-{% block frontend_content %}
+{% block content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -48,7 +70,7 @@
             </h4>
         </div>
 
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="row">
@@ -86,6 +108,7 @@
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control" id="price" name="price" value="{{ product.price }}" step="0.01" min="0" required>
                         </div>
+                        <small class="text-muted">Valor actual: {{ product.price }}</small>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -95,6 +118,7 @@
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control" id="cost_price" name="cost_price" value="{{ product.cost_price }}" step="0.01" min="0">
                         </div>
+                        <small class="text-muted">Valor actual: {{ product.cost_price }}</small>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -106,16 +130,53 @@
             </div>
 
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="mb-3">
                         <label for="barcode" class="form-label">Código de Barras</label>
                         <input type="text" class="form-control" id="barcode" name="barcode" value="{{ product.barcode }}">
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="category" class="form-label">Categoría</label>
-                        <input type="text" class="form-control" id="category" name="category" value="{{ product.category }}">
+            </div>
+            
+            <!-- Imagen del producto -->
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-image me-2"></i>
+                        Imagen del Producto
+                    </h5>
+                    
+                    <div class="image-preview" id="imagePreview">
+                        {% if product.images.first %}
+                            <div class="text-center">
+                                <img src="{{ product.images.first.image.url }}" class="img-fluid rounded" style="max-height: 180px;" alt="{{ product.name }}">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage()">
+                                        <i class="fas fa-trash me-1"></i>Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center">
+                                <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+                                <p class="text-muted small">Haz clic para seleccionar una imagen</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <input type="file" id="imageInput" name="image" accept="image/*" style="display: none;">
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="document.getElementById('imageInput').click()">
+                            <i class="fas fa-upload me-2"></i>Seleccionar Imagen
+                        </button>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Máximo 3MB. Formatos: JPG, PNG, GIF
+                        </small>
                     </div>
                 </div>
             </div>
@@ -133,8 +194,49 @@
 </div>
 {% endblock %}
 
-{% block frontend_extra_js %}
+{% block extra_js %}
 <script>
+// Preview de imagen
+document.getElementById('imageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <div class="text-center">
+                    <img src="${e.target.result}" class="img-fluid rounded" style="max-height: 180px;" alt="Preview">
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage()">
+                            <i class="fas fa-trash me-1"></i>Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    document.getElementById('imageInput').value = '';
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = `
+        <div class="text-center">
+            <i class="fas fa-camera fa-2x text-muted mb-2"></i>
+            <p class="text-muted small">Haz clic para seleccionar una imagen</p>
+        </div>
+    `;
+}
+
+// Click en preview para seleccionar imagen
+document.getElementById('imagePreview').addEventListener('click', function() {
+    if (!this.querySelector('img')) {
+        document.getElementById('imageInput').click();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-cálculo del margen de ganancia
     const priceInput = document.getElementById('price');

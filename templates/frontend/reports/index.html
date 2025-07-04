@@ -56,11 +56,19 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         height: 400px;
         position: relative;
+        overflow: hidden;
     }
     
     .chart-container canvas {
-        max-height: 350px !important;
+        max-height: 320px !important;
         width: 100% !important;
+        height: auto !important;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 100%;
+        width: 100%;
     }
 
     .table-responsive {
@@ -143,22 +151,8 @@
             <div class="stats-card success">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">${{ total_revenue|floatformat:0 }}</div>
+                        <div class="stats-number">{{ total_sales_count }}</div>
                         <div class="stats-label">Total Ventas</div>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6">
-            <div class="stats-card info">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <div class="stats-number">{{ total_sales }}</div>
-                        <div class="stats-label">Transacciones</div>
                     </div>
                     <div class="ms-3">
                         <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
@@ -168,11 +162,11 @@
         </div>
         
         <div class="col-xl-3 col-md-6">
-            <div class="stats-card">
+            <div class="stats-card info">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">${{ average_sale|floatformat:0 }}</div>
-                        <div class="stats-label">Promedio por Venta</div>
+                        <div class="stats-number">${{ total_utility|floatformat:0 }}</div>
+                        <div class="stats-label">Total Utilidad</div>
                     </div>
                     <div class="ms-3">
                         <i class="fas fa-chart-line fa-2x opacity-75"></i>
@@ -182,14 +176,90 @@
         </div>
         
         <div class="col-xl-3 col-md-6">
+            <div class="stats-card danger">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="stats-number">${{ total_expenses|floatformat:0 }}</div>
+                        <div class="stats-label">Total Gastos</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
             <div class="stats-card warning">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">{{ daily_average|floatformat:1 }}</div>
-                        <div class="stats-label">Promedio Diario</div>
+                        <div class="stats-number">{{ cmv_percentage|floatformat:1 }}%</div>
+                        <div class="stats-label">CMV %</div>
                     </div>
                     <div class="ms-3">
-                        <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                        <i class="fas fa-percentage fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen Financiero Detallado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-calculator me-2"></i>
+                    Resumen Financiero
+                </h5>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border-end">
+                            <div class="h4 text-success mb-1">${{ total_sales_revenue|floatformat:0 }}</div>
+                            <div class="text-muted small">Ingresos por Ventas</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border-end">
+                            <div class="h4 text-danger mb-1">${{ total_cmv|floatformat:0 }}</div>
+                            <div class="text-muted small">Costo Mercadería Vendida</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border-end">
+                            <div class="h4 text-warning mb-1">${{ total_expenses|floatformat:0 }}</div>
+                            <div class="text-muted small">Gastos Operativos</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3">
+                            <div class="h4 text-info mb-1">${{ total_utility|floatformat:0 }}</div>
+                            <div class="text-muted small">Utilidad Neta</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-3">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Margen Bruto:</span>
+                            <span class="fw-bold">{{ cmv_percentage|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ cmv_percentage }}%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Rentabilidad:</span>
+                            <span class="fw-bold">{{ profitability_percentage|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-info" style="width: {{ profitability_percentage|floatformat:0 }}%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,7 +274,9 @@
                     <i class="fas fa-chart-pie me-2"></i>
                     Ventas por Método de Pago
                 </h5>
-                <canvas id="paymentChart" height="100"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="paymentChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -215,7 +287,9 @@
                     <i class="fas fa-chart-bar me-2"></i>
                     Ventas por Día
                 </h5>
-                <canvas id="dailyChart" height="100"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="dailyChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -444,14 +518,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10
+                        }
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 20,
+                                padding: 15,
                                 usePointStyle: true,
                                 font: {
-                                    size: 12
+                                    size: 11
                                 }
                             }
                         },
@@ -513,13 +593,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        },
                         plugins: {
                             legend: {
                                 position: 'bottom',
                                 labels: {
-                                    padding: 20,
+                                    padding: 15,
                                     usePointStyle: true,
-                                    font: { size: 12 }
+                                    font: { size: 11 }
                                 }
                             },
                             tooltip: {

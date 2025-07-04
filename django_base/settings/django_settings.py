@@ -83,8 +83,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # <-------------- Lenguaje and timezone settings -------------->
-LANGUAGE_CODE = "en"
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "es"
+TIME_ZONE = "America/Argentina/Buenos_Aires"
 USE_I18N = True
 USE_TZ = True
 

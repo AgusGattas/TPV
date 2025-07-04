@@ -66,9 +66,8 @@ urlpatterns += [path("api/", include(base_router.urls)),]
 #<-------------- Frontend URLs -------------->
 urlpatterns += [path("", include("frontend.urls")),]
 
-#<-------------- Authentication URLs -------------->
-urlpatterns += [
-    path("login/", include("auth.urls")),
-]
+#<-------------- Media URLs for development -------------->
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # fmt: on

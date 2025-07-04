@@ -10,7 +10,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from decimal import Decimal
 
-from products.models import Product
+from products.models import Product, ProductImage
 from sales.models import Sale, SaleItem
 from stock.models import Stock, StockMovement
 from cashbox.models import CashBox, CashMovement
@@ -95,7 +95,7 @@ def dashboard(request):
 def products_list(request):
     """Lista de productos con búsqueda y filtros"""
     
-    products = Product.objects.filter(is_active=True).select_related('stock_info')
+    products = Product.objects.filter(is_active=True).prefetch_related('images')
     
     # Búsqueda
     search = request.GET.get('search', '')
@@ -106,13 +106,6 @@ def products_list(request):
             Q(description__icontains=search)
         )
     
-    # Filtros
-    stock_filter = request.GET.get('stock_filter', '')
-    if stock_filter == 'low':
-        products = products.filter(stock_info__current_quantity__lte=F('min_stock'))
-    elif stock_filter == 'out':
-        products = products.filter(stock_info__current_quantity=0)
-    
     # Ordenamiento
     order_by = request.GET.get('order_by', '-created_at')
     products = products.order_by(order_by)
@@ -120,7 +113,7 @@ def products_list(request):
     context = {
         'products': products,
         'search': search,
-        'stock_filter': stock_filter,
+        'stock_filter': '',
         'order_by': order_by,
     }
     
@@ -169,6 +162,11 @@ def product_create(request):
             
             # Validaciones básicas
             if not name or not price:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'El nombre y precio son obligatorios'
+                    })
                 messages.error(request, 'El nombre y precio son obligatorios')
                 return render(request, 'frontend/products/create.html')
             
@@ -187,15 +185,37 @@ def product_create(request):
                 stock, created = Stock.objects.get_or_create(product=product)
                 stock.add_stock(
                     quantity=int(initial_stock),
-                    cost_price=float(cost_price) if cost_price else 0,
+                    cost_price=Decimal(str(cost_price)) if cost_price else Decimal('0'),
                     reason="Stock inicial"
                 )
+            
+            # Procesar imagen si se subió una
+            if 'image' in request.FILES:
+                image_file = request.FILES['image']
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_file
+                )
+            
+            # Verificar si es una petición AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Producto "{product.name}" creado exitosamente',
+                    'product_id': product.id
+                })
             
             messages.success(request, f'Producto "{product.name}" creado exitosamente')
             return redirect('frontend:products_list')
             
         except Exception as e:
-            messages.error(request, f'Error al crear el producto: {str(e)}')
+            error_message = f'Error al crear el producto: {str(e)}'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': error_message
+                })
+            messages.error(request, error_message)
             return render(request, 'frontend/products/create.html')
     
     return render(request, 'frontend/products/create.html')
@@ -216,6 +236,7 @@ def product_edit(request, pk):
             min_stock = request.POST.get('min_stock', 0)
             description = request.POST.get('description', '')
             unit = request.POST.get('unit', 'unidad')
+            barcode = request.POST.get('barcode', '')
             
             # Validaciones básicas
             if not name or not price:
@@ -229,7 +250,20 @@ def product_edit(request, pk):
             product.min_stock = min_stock
             product.description = description
             product.unit = unit
+            product.barcode = barcode
             product.save()
+            
+            # Procesar imagen si se subió una nueva
+            if 'image' in request.FILES:
+                image_file = request.FILES['image']
+                # Eliminar imagen anterior si existe
+                if product.images.exists():
+                    product.images.all().delete()
+                # Crear nueva imagen
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_file
+                )
             
             messages.success(request, f'Producto "{product.name}" actualizado exitosamente')
             return redirect('frontend:products_list')
@@ -380,9 +414,9 @@ def stock_list(request):
     
     stock_filter = request.GET.get('stock_filter', '')
     if stock_filter == 'low':
-        stocks = stocks.filter(current_quantity__lte=F('product__min_stock'))
+        stocks = stocks.filter(stock_info__current_quantity__lte=F('product__min_stock'))
     elif stock_filter == 'out':
-        stocks = stocks.filter(current_quantity=0)
+        stocks = stocks.filter(stock_info__current_quantity=0)
     
     context = {
         'stocks': stocks,
@@ -790,14 +824,44 @@ def reports(request):
     date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
     date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
     
-    # Ventas por período
+    # Ventas por período (solo ventas activas)
     sales_period = Sale.objects.filter(
         created_at__date__range=[date_from, date_to],
         is_active=True
     )
     
-    total_sales = sales_period.count()
-    total_revenue = sales_period.aggregate(total=Sum('total_final'))['total'] or 0
+    # 1. TOTAL VENTAS: Total de ventas realizadas en el período
+    total_sales_count = sales_period.count()
+    total_sales_revenue = sales_period.aggregate(total=Sum('total_final'))['total'] or 0
+    
+    # 2. TOTAL UTILIDAD: Ventas menos costos de productos vendidos
+    # Calcular costo de mercadería vendida (CMV)
+    sale_items = SaleItem.objects.filter(
+        sale__created_at__date__range=[date_from, date_to],
+        sale__is_active=True
+    ).select_related('product')
+    
+    total_cmv = 0
+    for item in sale_items:
+        # Usar el costo del producto multiplicado por la cantidad vendida
+        product_cost = item.product.cost_price * item.quantity
+        total_cmv += float(product_cost)
+    
+    # Calcular utilidad bruta
+    total_utility = float(total_sales_revenue) - total_cmv
+    
+    # 3. TOTAL GASTOS: Suma de todos los egresos en el período
+    from cashbox.models import CashMovement
+    total_expenses = CashMovement.objects.filter(
+        created_at__date__range=[date_from, date_to],
+        type='egreso'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # 4. COSTO DE MERCADERÍA VENDIDA (CMV) y porcentaje
+    cmv_percentage = float((total_cmv / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
+    
+    # 5. RENTABILIDAD: Porcentaje de utilidad sobre ventas
+    profitability_percentage = float((total_utility / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
     
     # Ventas por método de pago
     sales_by_payment = sales_period.values('payment_method').annotate(
@@ -807,7 +871,7 @@ def reports(request):
     
     # Calcular porcentajes para métodos de pago
     for payment in sales_by_payment:
-        payment['percentage'] = float((payment['total'] / total_revenue * 100) if total_revenue > 0 else 0)
+        payment['percentage'] = float((payment['total'] / total_sales_revenue * 100) if total_sales_revenue > 0 else 0)
         payment['total'] = float(payment['total'])
         payment['count'] = int(payment['count'])
     
@@ -844,23 +908,16 @@ def reports(request):
         })
         current_date += timedelta(days=1)
     
-    # Calcular promedios
-    average_sale = float((total_revenue / total_sales) if total_sales > 0 else 0)
-    
-    # Calcular promedio diario (días en el período)
-    from datetime import datetime
-    start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-    end_date = datetime.strptime(date_to, '%Y-%m-%d').date()
-    days_in_period = (end_date - start_date).days + 1
-    daily_average = float((total_sales / days_in_period) if days_in_period > 0 else 0)
-    
     context = {
         'date_from': date_from,
         'date_to': date_to,
-        'total_sales': int(total_sales),
-        'total_revenue': float(total_revenue),
-        'average_sale': average_sale,
-        'daily_average': daily_average,
+        'total_sales_count': int(total_sales_count),
+        'total_sales_revenue': float(total_sales_revenue),
+        'total_utility': total_utility,
+        'total_expenses': float(total_expenses),
+        'total_cmv': total_cmv,
+        'cmv_percentage': cmv_percentage,
+        'profitability_percentage': profitability_percentage,
         'sales_by_payment': list(sales_by_payment),  # Convertir a lista para JSON
         'top_products': list(top_products),  # Convertir a lista para JSON
         'sales_last_7_days': sales_last_7_days,

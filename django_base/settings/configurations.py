@@ -23,6 +23,7 @@ LOCALE_PATHS = [
 
 LANGUAGES = [
     ("en", "English"),
+    ("es", "Español"),
 ]
 
 
