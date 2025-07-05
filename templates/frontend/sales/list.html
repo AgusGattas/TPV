@@ -5,22 +5,164 @@
 
 {% block extra_css %}
 <style>
-    .sale-card {
+    .sales-list-container {
         background: white;
         border-radius: 15px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease;
+        overflow: hidden;
     }
     
-    .sale-card:hover {
-        transform: translateY(-2px);
+    .sales-list-header {
+        background: #f8f9fa;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e9ecef;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
-    .sale-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 15px 15px 0 0;
-        padding: 1rem;
+    .sales-list-header-content {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 2rem;
+        align-items: center;
+    }
+    
+    .header-info {
+        text-align: left;
+    }
+    
+    .header-total {
+        text-align: center;
+        min-width: 160px;
+    }
+    
+    .header-actions {
+        text-align: center;
+        min-width: 120px;
+    }
+    
+    .sale-item {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f3f4;
+        transition: all 0.2s ease;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 2rem;
+        align-items: center;
+    }
+    
+    .sale-item:hover {
+        background-color: #f8f9fa;
+        transform: translateX(4px);
+    }
+    
+    .sale-item:last-child {
+        border-bottom: none;
+    }
+    
+    .sale-main-info {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+    
+    .sale-identifier {
+        min-width: 180px;
+    }
+    
+    .sale-ticket {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 1.2rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .sale-date {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .sale-details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1.5rem;
+        flex: 1;
+    }
+    
+    .sale-detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .sale-detail-label {
+        font-size: 0.75rem;
+        color: #adb5bd;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .sale-detail-value {
+        color: #495057;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .sale-detail-value.text-success {
+        color: #28a745 !important;
+    }
+    
+    .sale-detail-value.text-muted {
+        color: #6c757d !important;
+    }
+    
+    .sale-summary {
+        text-align: right;
+        min-width: 160px;
+    }
+    
+    .sale-total {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .payment-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .payment-badge.bg-light {
+        background-color: #e9ecef !important;
+        color: #495057 !important;
+    }
+    
+    .sale-actions {
+        display: flex;
+        gap: 0.75rem;
+        min-width: 120px;
+        justify-content: flex-end;
+    }
+    
+    .sale-actions .btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .sale-actions .btn:hover {
+        transform: translateY(-1px);
     }
     
     .filters-container {
@@ -31,8 +173,108 @@
         margin-bottom: 2rem;
     }
     
-    .payment-badge {
-        font-size: 0.8rem;
+    .empty-state {
+        padding: 4rem 1.5rem;
+        text-align: center;
+    }
+    
+    .stats-summary {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .stats-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .stats-value {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    @media (max-width: 1200px) {
+        .sale-item {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .sales-list-header-content {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        
+        .header-total,
+        .header-actions {
+            text-align: left;
+            min-width: auto;
+        }
+        
+        .sale-main-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .sale-details-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        
+        .sale-summary {
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sale-actions {
+            justify-content: flex-start;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .sale-details-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .sale-summary {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+    
+    .title-actions {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+    
+    .title-actions .btn {
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+    
+    .title-actions .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .page-main-title {
+        position: relative;
     }
 </style>
 {% endblock %}
@@ -47,6 +289,11 @@
         </div>
         <div class="title-subtitle">
             Historial y gestión de ventas
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:sale_create' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Crear Venta
+            </a>
         </div>
     </div>
 
@@ -82,64 +329,95 @@
 
     <!-- Lista de ventas -->
     {% if sales %}
-        <div class="row">
+        <!-- Resumen de estadísticas -->
+        <div class="stats-summary">
+            <div class="stats-item">
+                <i class="fas fa-list-ul"></i>
+                <span>Total de ventas: <span class="stats-value">{{ sales.paginator.count }}</span></span>
+            </div>
+            <div class="stats-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Período: <span class="stats-value">
+                    {% if date_from and date_to %}
+                        {{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}
+                    {% elif date_from %}
+                        Desde {{ date_from|date:"d/m/Y" }}
+                    {% elif date_to %}
+                        Hasta {{ date_to|date:"d/m/Y" }}
+                    {% else %}
+                        Todas las fechas
+                    {% endif %}
+                </span></span>
+            </div>
+            {% if payment_method %}
+            <div class="stats-item">
+                <i class="fas fa-credit-card"></i>
+                <span>Método: <span class="stats-value">{{ payment_method|title }}</span></span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sales-list-container">
+            <!-- Header de la lista -->
+            <div class="sales-list-header">
+                <div class="sales-list-header-content">
+                    <div class="header-info">Información de la Venta</div>
+                    <div class="header-total">Total</div>
+                    <div class="header-actions">Acciones</div>
+                </div>
+            </div>
+            
+            <!-- Items de ventas -->
             {% for sale in sales %}
-            <div class="col-lg-6 col-xl-4 mb-4">
-                <div class="sale-card">
-                    <div class="sale-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">Ticket #{{ sale.ticket_number }}</h6>
-                                <small>{{ sale.created_at|date:"d/m/Y H:i" }}</small>
-                            </div>
-                            <div class="text-end">
-                                <div class="h5 mb-0">${{ sale.total_final|floatformat:0 }}</div>
-                                <span class="badge payment-badge bg-light text-dark">
-                                    {{ sale.get_payment_method_display }}
-                                </span>
-                            </div>
-                        </div>
+            <div class="sale-item">
+                <div class="sale-main-info">
+                    <div class="sale-identifier">
+                        <div class="sale-ticket">Ticket #{{ sale.ticket_number }}</div>
+                        <div class="sale-date">{{ sale.created_at|date:"d/m/Y H:i" }}</div>
                     </div>
                     
-                    <div class="p-3">
-                        <div class="row mb-2">
-                            <div class="col-6">
-                                <small class="text-muted">Vendedor</small>
-                                <div>{{ sale.user.get_full_name|default:sale.user.username }}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Caja</small>
-                                <div>{{ sale.cashbox.user.get_full_name|default:sale.cashbox.user.username }}</div>
-                            </div>
+                    <div class="sale-details-grid">
+                        <div class="sale-detail-item">
+                            <div class="sale-detail-label">Vendedor</div>
+                            <div class="sale-detail-value">{{ sale.user.get_full_name|default:sale.user.username }}</div>
                         </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <small class="text-muted">Items</small>
-                                <div>{{ sale.items.count }} productos</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Descuentos</small>
-                                <div class="text-success">-${{ sale.total_discount|floatformat:0 }}</div>
-                            </div>
+                        <div class="sale-detail-item">
+                            <div class="sale-detail-label">Caja</div>
+                            <div class="sale-detail-value">{{ sale.cashbox.user.get_full_name|default:sale.cashbox.user.username }}</div>
                         </div>
-                        
-                        {% if sale.notes %}
-                            <div class="mb-3">
-                                <small class="text-muted">Notas</small>
-                                <div class="small">{{ sale.notes|truncatewords:10 }}</div>
-                            </div>
+                        <div class="sale-detail-item">
+                            <div class="sale-detail-label">Productos</div>
+                            <div class="sale-detail-value">{{ sale.items.count }} items</div>
+                        </div>
+                        {% if sale.total_discount > 0 %}
+                        <div class="sale-detail-item">
+                            <div class="sale-detail-label">Descuento</div>
+                            <div class="sale-detail-value text-success">-${{ sale.total_discount|floatformat:0 }}</div>
+                        </div>
                         {% endif %}
-                        
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'frontend:sale_detail' sale.id %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye me-1"></i>Ver Detalle
-                            </a>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printSale({{ sale.id }})">
-                                <i class="fas fa-print me-1"></i>Imprimir
-                            </button>
+                        {% if sale.notes %}
+                        <div class="sale-detail-item">
+                            <div class="sale-detail-label">Notas</div>
+                            <div class="sale-detail-value text-muted">{{ sale.notes|truncatewords:5 }}</div>
                         </div>
+                        {% endif %}
                     </div>
+                </div>
+                
+                <div class="sale-summary">
+                    <div class="sale-total">${{ sale.total_final|floatformat:0 }}</div>
+                    <span class="badge payment-badge bg-light">
+                        {{ sale.get_payment_method_display }}
+                    </span>
+                </div>
+                
+                <div class="sale-actions">
+                    <a href="{% url 'frontend:sale_detail' sale.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalle">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printSale({{ sale.id }})" title="Imprimir">
+                        <i class="fas fa-print"></i>
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -147,7 +425,7 @@
         
         <!-- Paginación -->
         {% if sales.has_other_pages %}
-        <nav aria-label="Navegación de ventas">
+        <nav aria-label="Navegación de ventas" class="mt-4">
             <ul class="pagination justify-content-center">
                 {% if sales.has_previous %}
                     <li class="page-item">
@@ -182,13 +460,15 @@
         
     {% else %}
         <!-- Estado vacío -->
-        <div class="text-center py-5">
-            <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
-            <h4 class="text-muted">No se encontraron ventas</h4>
-            <p class="text-muted">Intenta ajustar los filtros de búsqueda o crear una nueva venta.</p>
-            <a href="{% url 'frontend:sale_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Crear Venta
-            </a>
+        <div class="sales-list-container">
+            <div class="empty-state">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No se encontraron ventas</h4>
+                <p class="text-muted">Intenta ajustar los filtros de búsqueda o crear una nueva venta.</p>
+                <a href="{% url 'frontend:sale_create' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>Crear Venta
+                </a>
+            </div>
         </div>
     {% endif %}
 </div>

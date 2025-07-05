@@ -57,6 +57,29 @@
     .status-inactive {
         background-color: #dc3545;
     }
+    
+    .title-actions {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+    
+    .title-actions .btn {
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+    
+    .title-actions .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .page-main-title {
+        position: relative;
+    }
 </style>
 {% endblock %}
 
@@ -70,6 +93,11 @@
         </div>
         <div class="title-subtitle">
             Administración de usuarios y permisos
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:user_create' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Crear Usuario
+            </a>
         </div>
     </div>
 
@@ -235,7 +263,10 @@
         <div class="text-center py-5">
             <i class="fas fa-users fa-4x text-muted mb-3"></i>
             <h4 class="text-muted">No se encontraron usuarios</h4>
-            <p class="text-muted">Intenta ajustar los filtros de búsqueda.</p>
+            <p class="text-muted">Intenta ajustar los filtros de búsqueda o crear un nuevo usuario.</p>
+            <a href="{% url 'frontend:user_create' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Crear Usuario
+            </a>
         </div>
     {% endif %}
 </div>
@@ -282,14 +313,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event listeners para filtros
-    roleFilter.addEventListener('change', updateFilters);
-    orderBy.addEventListener('change', updateFilters);
+    roleFilter.addEventListener('change', function() {
+        // Construir la URL con los parámetros
+        const params = new URLSearchParams();
+        
+        if (searchInput.value) {
+            params.set('search', searchInput.value);
+        }
+        
+        if (roleFilter.value) {
+            params.set('role_filter', roleFilter.value);
+        }
+        
+        if (orderBy.value) {
+            params.set('order_by', orderBy.value);
+        }
+        
+        // Redirigir a la nueva URL
+        const newUrl = window.location.pathname + '?' + params.toString();
+        window.location.href = newUrl;
+    });
+    
+    orderBy.addEventListener('change', function() {
+        // Construir la URL con los parámetros
+        const params = new URLSearchParams();
+        
+        if (searchInput.value) {
+            params.set('search', searchInput.value);
+        }
+        
+        if (roleFilter.value) {
+            params.set('role_filter', roleFilter.value);
+        }
+        
+        if (orderBy.value) {
+            params.set('order_by', orderBy.value);
+        }
+        
+        // Redirigir a la nueva URL
+        const newUrl = window.location.pathname + '?' + params.toString();
+        window.location.href = newUrl;
+    });
     
     // Búsqueda con debounce
     let searchTimeout;
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(updateFilters, 500);
+        searchTimeout = setTimeout(function() {
+            // Construir la URL con los parámetros
+            const params = new URLSearchParams();
+            
+            if (searchInput.value) {
+                params.set('search', searchInput.value);
+            }
+            
+            if (roleFilter.value) {
+                params.set('role_filter', roleFilter.value);
+            }
+            
+            if (orderBy.value) {
+                params.set('order_by', orderBy.value);
+            }
+            
+            // Redirigir a la nueva URL
+            const newUrl = window.location.pathname + '?' + params.toString();
+            window.location.href = newUrl;
+        }, 500);
     });
 });
 </script>

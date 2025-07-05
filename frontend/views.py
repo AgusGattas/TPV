@@ -745,6 +745,16 @@ def user_create(request):
             password1 = request.POST.get('password1')
             password2 = request.POST.get('password2')
             
+            # Debug: mostrar los datos recibidos
+            print(f"DEBUG - Datos recibidos:")
+            print(f"Username: {username}")
+            print(f"Email: {email}")
+            print(f"First name: {first_name}")
+            print(f"Last name: {last_name}")
+            print(f"Role: {role}")
+            print(f"Password1: {'*' * len(password1) if password1 else 'None'}")
+            print(f"Password2: {'*' * len(password2) if password2 else 'None'}")
+            
             # Validaciones básicas
             if not username or not email or not password1:
                 messages.error(request, 'Username, email y contraseña son obligatorios')
@@ -778,10 +788,13 @@ def user_create(request):
                 role=role
             )
             
+            print(f"DEBUG - Usuario creado exitosamente: {user.username}")
+            
             messages.success(request, f'Usuario "{user.username}" creado exitosamente')
             return redirect('frontend:users_list')
             
         except Exception as e:
+            print(f"DEBUG - Error al crear usuario: {str(e)}")
             messages.error(request, f'Error al crear el usuario: {str(e)}')
             return render(request, 'frontend/users/create.html')
     

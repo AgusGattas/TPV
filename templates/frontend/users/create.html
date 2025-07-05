@@ -101,6 +101,18 @@
                 <form method="post" id="userForm">
                     {% csrf_token %}
                     
+                    <!-- Debug: mostrar mensajes de error -->
+                    {% if messages %}
+                        <div class="mb-3">
+                            {% for message in messages %}
+                                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
                     <div class="row">
                         <!-- Información básica -->
                         <div class="col-md-6">
@@ -259,23 +271,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     password2.addEventListener('input', checkPasswordMatch);
     
-    // Validación del formulario
+    // Validación del formulario - SOLO ADVERTENCIAS, NO BLOQUEAR
     form.addEventListener('submit', function(e) {
         const p1 = password1.value;
         const p2 = password2.value;
         
+        // Solo mostrar advertencias, no bloquear el envío
         if (p1 !== p2) {
-            e.preventDefault();
-            alert('Las contraseñas no coinciden');
-            password2.focus();
-            return false;
+            alert('Advertencia: Las contraseñas no coinciden. ¿Deseas continuar?');
+            if (!confirm('¿Estás seguro de que quieres continuar?')) {
+                e.preventDefault();
+                password2.focus();
+                return false;
+            }
         }
         
         if (p1.length < 8) {
-            e.preventDefault();
-            alert('La contraseña debe tener al menos 8 caracteres');
-            password1.focus();
-            return false;
+            alert('Advertencia: La contraseña debe tener al menos 8 caracteres. ¿Deseas continuar?');
+            if (!confirm('¿Estás seguro de que quieres continuar?')) {
+                e.preventDefault();
+                password1.focus();
+                return false;
+            }
         }
     });
     
