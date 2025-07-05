@@ -242,6 +242,58 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Arqueo de Caja (solo si la caja está cerrada) -->
+            {% if cashbox_arqueo %}
+            <div class="sale-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-cash-register me-2"></i>
+                    Arqueo de Caja al Cierre
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Efectivo Calculado</div>
+                        <div class="fw-bold">${{ cashbox_arqueo.calculated_cash|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Efectivo Contado</div>
+                        <div class="fw-bold">${{ cashbox_arqueo.counted_cash|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Diferencia</div>
+                        <div class="fw-bold {% if cashbox_arqueo.difference > 0 %}text-success{% elif cashbox_arqueo.difference < 0 %}text-danger{% else %}text-success{% endif %}">
+                            ${{ cashbox_arqueo.difference|floatformat:2 }}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Efectivo a Mantener</div>
+                        <div class="fw-bold">${{ cashbox_arqueo.cash_to_keep|floatformat:2 }}</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Monto a Retirar</div>
+                        <div class="fw-bold text-success">${{ cashbox_arqueo.cash_to_withdraw|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Caja Cerrada</div>
+                        <div class="fw-bold">{{ cashbox_arqueo.closed_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+                
+                {% if cashbox_arqueo.closing_notes %}
+                <div class="mb-3">
+                    <div class="text-muted small">Notas de Cierre</div>
+                    <div class="fst-italic">{{ cashbox_arqueo.closing_notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

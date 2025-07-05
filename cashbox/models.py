@@ -22,6 +22,7 @@ class CashBox(BaseModel):
     difference = models.DecimalField(_("Difference"), max_digits=10, decimal_places=2, null=True, blank=True)
     cash_to_keep = models.DecimalField(_("Cash To Keep"), max_digits=10, decimal_places=2, null=True, blank=True)
     cash_to_withdraw = models.DecimalField(_("Cash To Withdraw"), max_digits=10, decimal_places=2, null=True, blank=True)
+    closing_notes = models.TextField(_("Closing Notes"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("Cash Box")
@@ -146,7 +147,7 @@ class CashBox(BaseModel):
         """Obtiene el cash_to_keep sugerido para la nueva caja"""
         return cls.get_last_cash_to_keep()
 
-    def close_cashbox(self, counted_cash, cash_to_keep=None):
+    def close_cashbox(self, counted_cash, cash_to_keep=None, closing_notes=None):
         """Cierra la caja y calcula diferencias"""
         if not self.is_open:
             raise ValueError("La caja ya está cerrada")
@@ -161,6 +162,7 @@ class CashBox(BaseModel):
         
         self.cash_to_keep = cash_to_keep
         self.cash_to_withdraw = self.counted_cash - cash_to_keep
+        self.closing_notes = closing_notes
         self.closed_at = timezone.now()
         self.save()
 

@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const differenceAlert = document.getElementById('difference_alert');
     
     // Obtener el efectivo calculado del sistema
-    const calculatedCash = parseFloat('{{ cashbox.current_balance|floatformat:2 }}'.replace(',', ''));
+    const calculatedCash = parseFloat('{{ cashbox.current_balance|floatformat:2 }}'.replace(',', '.'));
     
     function updateArqueo() {
         const countedCash = parseFloat(countedCashInput.value) || 0;

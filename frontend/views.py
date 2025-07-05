@@ -325,8 +325,22 @@ def sale_detail(request, pk):
     
     sale = get_object_or_404(Sale, pk=pk, is_active=True)
     
+    # Información del arqueo de caja si la caja está cerrada
+    cashbox_arqueo = None
+    if sale.cashbox.closed_at:
+        cashbox_arqueo = {
+            'calculated_cash': sale.cashbox.calculated_cash,
+            'counted_cash': sale.cashbox.counted_cash,
+            'difference': sale.cashbox.difference,
+            'cash_to_keep': sale.cashbox.cash_to_keep,
+            'cash_to_withdraw': sale.cashbox.cash_to_withdraw,
+            'closing_notes': getattr(sale.cashbox, 'closing_notes', ''),
+            'closed_at': sale.cashbox.closed_at,
+        }
+    
     context = {
         'sale': sale,
+        'cashbox_arqueo': cashbox_arqueo,
     }
     
     return render(request, 'frontend/sales/detail.html', context)
@@ -605,9 +619,12 @@ def close_cashbox(request, pk):
             if cash_to_keep:
                 cash_to_keep = Decimal(cash_to_keep)
             
+            closing_notes = request.POST.get('closing_notes', '').strip()
+            
             cashbox.close_cashbox(
                 counted_cash=counted_cash,
-                cash_to_keep=cash_to_keep
+                cash_to_keep=cash_to_keep,
+                closing_notes=closing_notes
             )
             
             messages.success(request, 'Caja cerrada exitosamente')
