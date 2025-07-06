@@ -165,6 +165,24 @@
     .item-row .col-md-1 {
         min-width: 80px;
     }
+    
+    /* Breakpoint personalizado para 1550px */
+    @media (max-width: 1549.98px) {
+        .d-1550-none {
+            display: block !important;
+        }
+        .d-none.d-1550-flex {
+            display: none !important;
+        }
+    }
+    @media (min-width: 1550px) {
+        .d-1550-none {
+            display: none !important;
+        }
+        .d-none.d-1550-flex {
+            display: flex !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -217,8 +235,8 @@
                     Productos Vendidos
                 </h5>
                 
-                <!-- Header de columnas (solo visible en desktop) -->
-                <div class="row mb-2 fw-bold text-muted small d-none d-md-flex">
+                <!-- Header de columnas (solo visible en desktop >=1550px) -->
+                <div class="row mb-2 fw-bold text-muted small d-none d-1550-flex">
                     <div class="col-md-2">Producto</div>
                     <div class="col-md-2 text-center">Cant.</div>
                     <div class="col-md-2 text-center">Precio Unit.</div>
@@ -229,8 +247,8 @@
                 
                 {% for item in sale.items.all %}
                 <div class="item-row">
-                    <!-- Vista desktop -->
-                    <div class="row align-items-center d-none d-md-flex">
+                    <!-- Vista desktop >=1550px -->
+                    <div class="row align-items-center d-none d-1550-flex">
                         <div class="col-md-2">
                             <div class="fw-bold">{{ item.product.name }}</div>
                             <div class="text-muted small">
@@ -262,38 +280,21 @@
                         </div>
                     </div>
                     
-                    <!-- Vista móvil -->
-                    <div class="d-md-none">
-                        <div class="row mb-2">
-                            <div class="col-8">
-                                <div class="fw-bold">{{ item.product.name }}</div>
-                                <div class="text-muted small">
-                                    {% if item.product.barcode %}
-                                        Código: {{ item.product.barcode }}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-4 text-end">
-                                <div class="fw-bold">${{ item.total|floatformat:2 }}</div>
-                                {% if item.discount_percentage > 0 %}
-                                    <div class="text-success small">-{{ item.discount_percentage }}%</div>
+                    <!-- Vista ficha para <1550px -->
+                    <div class="d-1550-none">
+                        <div class="mb-2">
+                            <div class="fw-bold">{{ item.product.name }}</div>
+                            <div class="text-muted small mb-1">
+                                {% if item.product.barcode %}
+                                    Código: {{ item.product.barcode }}
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="row text-muted small">
-                            <div class="col-6">
-                                <div class="mb-1"><span class="fw-bold">{{ item.quantity }}</span> {{ item.product.unit|default:"unidad" }}</div>
-                                <div>${{ item.unit_price|floatformat:2 }} c/u</div>
-                            </div>
-                            <div class="col-6 text-end">
-                                <div class="mb-1">Subtotal: ${{ item.subtotal|floatformat:2 }}</div>
-                                {% if item.discount_percentage > 0 %}
-                                    <div class="text-success">Descuento: -${{ item.discount_amount|floatformat:2 }}</div>
-                                {% else %}
-                                    <div>Sin descuento</div>
-                                {% endif %}
-                            </div>
-                        </div>
+                        <div class="mb-1"><span class="text-muted">Cantidad:</span> <span class="fw-bold">{{ item.quantity }}</span> {{ item.product.unit|default:"unidad" }}</div>
+                        <div class="mb-1"><span class="text-muted">Precio Unit.:</span> <span class="fw-bold">${{ item.unit_price|floatformat:2 }}</span></div>
+                        <div class="mb-1"><span class="text-muted">Subtotal:</span> <span class="fw-bold">${{ item.subtotal|floatformat:2 }}</span></div>
+                        <div class="mb-1"><span class="text-muted">Descuento:</span> <span class="fw-bold text-success">-${{ item.discount_amount|floatformat:2 }}</span>{% if item.discount_percentage > 0 %} <span class="text-success small">(-{{ item.discount_percentage }}%)</span>{% endif %}</div>
+                        <div class="mb-1"><span class="text-muted">Total:</span> <span class="fw-bold">${{ item.total|floatformat:2 }}</span></div>
                     </div>
                 </div>
                 {% empty %}
