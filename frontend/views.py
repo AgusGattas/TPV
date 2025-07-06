@@ -20,7 +20,7 @@ from users.models import User
 
 @login_required
 def dashboard(request):
-    """Dashboard principal con estadísticas y resumen"""
+    """Escritorio principal con estadísticas y resumen"""
     
     # Estadísticas generales
     total_products = Product.objects.filter(is_active=True).count()

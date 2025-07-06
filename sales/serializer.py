@@ -8,6 +8,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
     product_id = serializers.IntegerField(write_only=True)
     discount_amount = serializers.ReadOnlyField()
+    total = serializers.ReadOnlyField()
 
     class Meta:
         model = SaleItem
@@ -20,6 +21,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
             "discount_percentage",
             "subtotal",
             "discount_amount",
+            "total",
             "created_at",
             "updated_at",
         ]

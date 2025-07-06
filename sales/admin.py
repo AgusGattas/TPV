@@ -6,7 +6,7 @@ from .models import Sale, SaleItem
 class SaleItemInline(admin.TabularInline):
     model = SaleItem
     extra = 0
-    readonly_fields = ('subtotal',)
+    readonly_fields = ('subtotal', 'total')
 
 
 @admin.register(Sale)
