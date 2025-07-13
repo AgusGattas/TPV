@@ -240,15 +240,19 @@
                                 </div>
                                 <div class="col-md-3">
                                     <span class="badge bg-primary">
-                                        {% if sale.payment_method == 'efectivo' %}
-                                            <i class="fas fa-money-bill-wave me-1"></i>Efectivo
-                                        {% elif sale.payment_method == 'debito' %}
-                                            <i class="fas fa-credit-card me-1"></i>Débito
-                                        {% elif sale.payment_method == 'transferencia' %}
-                                            <i class="fas fa-exchange-alt me-1"></i>Transferencia
-                                        {% else %}
-                                            {{ sale.payment_method|title }}
-                                        {% endif %}
+                                                                {% if sale.payment_method == 'efectivo' %}
+                            <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                        {% elif sale.payment_method == 'debito' %}
+                            <i class="fas fa-credit-card me-1"></i>Débito
+                        {% elif sale.payment_method == 'transferencia' %}
+                            <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                        {% elif sale.payment_method == 'credito' %}
+                            <i class="fas fa-credit-card me-1"></i>Tarjeta de Crédito
+                        {% elif sale.payment_method == 'qr' %}
+                            <i class="fas fa-qrcode me-1"></i>QR
+                        {% else %}
+                            {{ sale.payment_method|title }}
+                        {% endif %}
                                     </span>
                                 </div>
                                 <div class="col-md-3 text-center">

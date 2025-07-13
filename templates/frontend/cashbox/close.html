@@ -183,7 +183,21 @@
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-success">${{ sale.total_final|floatformat:2 }}</div>
-                            <div class="text-muted small">{{ sale.payment_method|title }}</div>
+                            <div class="text-muted small">
+                            {% if sale.payment_method == 'efectivo' %}
+                                Efectivo
+                            {% elif sale.payment_method == 'debito' %}
+                                Débito
+                            {% elif sale.payment_method == 'transferencia' %}
+                                Transferencia
+                            {% elif sale.payment_method == 'credito' %}
+                                Tarjeta de Crédito
+                            {% elif sale.payment_method == 'qr' %}
+                                QR
+                            {% else %}
+                                {{ sale.payment_method|title }}
+                            {% endif %}
+                        </div>
                         </div>
                     </div>
                     {% endfor %}

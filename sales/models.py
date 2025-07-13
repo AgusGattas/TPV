@@ -10,6 +10,8 @@ class Sale(BaseModel):
         ('efectivo', _('Cash')),
         ('transferencia', _('Transfer')),
         ('debito', _('Debit Card')),
+        ('credito', _('Credit Card')),
+        ('qr', _('QR')),
     )
 
     user = models.ForeignKey(

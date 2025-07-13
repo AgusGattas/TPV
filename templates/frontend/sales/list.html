@@ -317,6 +317,8 @@
                     <option value="efectivo" {% if payment_method == 'efectivo' %}selected{% endif %}>Efectivo</option>
                     <option value="debito" {% if payment_method == 'debito' %}selected{% endif %}>Débito</option>
                     <option value="transferencia" {% if payment_method == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                    <option value="credito" {% if payment_method == 'credito' %}selected{% endif %}>Tarjeta de Crédito</option>
+                    <option value="qr" {% if payment_method == 'qr' %}selected{% endif %}>QR</option>
                 </select>
             </div>
             <div class="col-md-3 d-flex align-items-end">

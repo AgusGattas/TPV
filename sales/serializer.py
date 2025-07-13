@@ -102,7 +102,7 @@ class SaleCreateSerializer(serializers.ModelSerializer):
                 'help_text': 'ID de la caja registradora'
             },
             'payment_method': {
-                'help_text': 'Método de pago: efectivo, transferencia, debito'
+                'help_text': 'Método de pago: efectivo, transferencia, debito, credito, qr'
             },
             'notes': {
                 'help_text': 'Notas adicionales de la venta (opcional)'
