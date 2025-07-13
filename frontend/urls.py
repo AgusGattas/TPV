@@ -46,6 +46,8 @@ urlpatterns = [
     path('usuarios/', views.users_list, name='users_list'),
     path('usuarios/crear/', views.user_create, name='user_create'),
     path('usuarios/<int:pk>/', views.user_detail, name='user_detail'),
+    path('usuarios/<int:pk>/editar/', views.user_edit, name='user_edit'),
+    path('usuarios/<int:pk>/eliminar/', views.user_delete, name='user_delete'),
     
     # Reportes (solo admin)
     path('reportes/', views.reports, name='reports'),

@@ -944,6 +944,147 @@ def user_detail(request, pk):
 
 
 @login_required
+def user_edit(request, pk):
+    """Editar usuario (administradores pueden editar cualquier usuario, usuarios pueden editar su propia cuenta)"""
+    
+    user = get_object_or_404(User, pk=pk, is_active=True)
+    
+    # Verificar permisos: solo administradores pueden editar otros usuarios
+    if not request.user.is_admin and request.user != user:
+        messages.error(request, 'No tienes permisos para editar otros usuarios')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            role = request.POST.get('role', 'vendedor')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Campos de contraseña (opcionales)
+            password1 = request.POST.get('password1', '')
+            password2 = request.POST.get('password2', '')
+            
+            # Si el usuario está editando su propia cuenta, solo permitir ciertos campos
+            is_self_edit = request.user == user
+            
+            # Validaciones básicas
+            if not username or not email:
+                messages.error(request, 'Username y email son obligatorios')
+                return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+            
+            # Verificar si el username ya existe (excluyendo el usuario actual)
+            if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+                messages.error(request, 'El username ya está en uso')
+                return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+            
+            # Verificar si el email ya existe (excluyendo el usuario actual)
+            if User.objects.filter(email=email).exclude(pk=user.pk).exists():
+                messages.error(request, 'El email ya está registrado')
+                return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+            
+            # Validar cambio de contraseña si se proporcionó
+            if password1 or password2:
+                if not password1 or not password2:
+                    messages.error(request, 'Ambos campos de contraseña son obligatorios para cambiar la contraseña')
+                    return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+                
+                if password1 != password2:
+                    messages.error(request, 'Las contraseñas no coinciden')
+                    return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+                
+                if len(password1) < 8:
+                    messages.error(request, 'La contraseña debe tener al menos 8 caracteres')
+                    return render(request, 'frontend/users/edit.html', {'user': user, 'is_self_edit': is_self_edit})
+                
+                # Cambiar la contraseña
+                user.set_password(password1)
+                password_changed = True
+            else:
+                password_changed = False
+            
+            # Actualizar el usuario
+            user.username = username
+            user.email = email
+            user.first_name = first_name
+            user.last_name = last_name
+            
+            # Solo administradores pueden cambiar rol y estado activo
+            if not is_self_edit:
+                user.role = role
+                user.is_active = is_active
+            
+            user.save()
+            
+            if password_changed:
+                messages.success(request, f'Usuario "{user.username}" actualizado exitosamente. La contraseña ha sido cambiada.')
+            else:
+                messages.success(request, f'Usuario "{user.username}" actualizado exitosamente')
+            return redirect('frontend:users_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el usuario: {str(e)}')
+            return render(request, 'frontend/users/edit.html', {'user': user})
+    
+    context = {
+        'user': user,
+        'is_self_edit': request.user == user,
+    }
+    
+    return render(request, 'frontend/users/edit.html', context)
+
+
+@login_required
+def user_delete(request, pk):
+    """Eliminar usuario (solo para administradores)"""
+    
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, pk=pk, is_active=True)
+    
+    # No permitir eliminar el propio usuario
+    if user == request.user:
+        messages.error(request, 'No puedes eliminar tu propia cuenta')
+        return redirect('frontend:users_list')
+    
+    if request.method == 'POST':
+        try:
+            # Verificar si el usuario tiene ventas asociadas
+            sales_count = Sale.objects.filter(user=user, is_active=True).count()
+            
+            if sales_count > 0:
+                # Si tiene ventas, solo desactivar
+                user.is_active = False
+                user.save()
+                messages.success(request, f'Usuario "{user.username}" desactivado exitosamente (tiene {sales_count} ventas asociadas)')
+            else:
+                # Si no tiene ventas, eliminar completamente
+                user.delete()
+                messages.success(request, f'Usuario "{user.username}" eliminado exitosamente')
+            
+            return redirect('frontend:users_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el usuario: {str(e)}')
+            return redirect('frontend:users_list')
+    
+    # Mostrar confirmación
+    sales_count = Sale.objects.filter(user=user, is_active=True).count()
+    
+    context = {
+        'user': user,
+        'sales_count': sales_count,
+    }
+    
+    return render(request, 'frontend/users/delete.html', context)
+
+
+@login_required
 def reports(request):
     """Reportes (solo para administradores)"""
     

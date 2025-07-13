@@ -269,18 +269,14 @@
                 </h5>
                 
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-secondary" onclick="alert('Función de editar usuario próximamente disponible')">
+                    <a href="{% url 'frontend:user_edit' user_detail.id %}" class="btn btn-outline-warning">
                         <i class="fas fa-edit me-2"></i>Editar Usuario
-                    </button>
+                    </a>
                     
-                    {% if user_detail.is_active %}
-                        <button class="btn btn-outline-warning" onclick="alert('Función de desactivar usuario próximamente disponible')">
-                            <i class="fas fa-user-slash me-2"></i>Desactivar Usuario
-                        </button>
-                    {% else %}
-                        <button class="btn btn-outline-success" onclick="alert('Función de activar usuario próximamente disponible')">
-                            <i class="fas fa-user-check me-2"></i>Activar Usuario
-                        </button>
+                    {% if user_detail != request.user %}
+                        <a href="{% url 'frontend:user_delete' user_detail.id %}" class="btn btn-outline-danger">
+                            <i class="fas fa-trash me-2"></i>Eliminar Usuario
+                        </a>
                     {% endif %}
                     
                     <a href="{% url 'frontend:users_list' %}" class="btn btn-outline-primary">

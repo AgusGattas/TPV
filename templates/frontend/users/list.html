@@ -213,9 +213,14 @@
                             <a href="{% url 'frontend:user_detail' user.id %}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-eye me-1"></i>Ver
                             </a>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="alert('Función de editar próximamente disponible')">
+                            <a href="{% url 'frontend:user_edit' user.id %}" class="btn btn-outline-warning btn-sm">
                                 <i class="fas fa-edit me-1"></i>Editar
-                            </button>
+                            </a>
+                            {% if user != request.user %}
+                                <a href="{% url 'frontend:user_delete' user.id %}" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-trash me-1"></i>Eliminar
+                                </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

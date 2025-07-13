@@ -64,9 +64,9 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Mi Perfil</h1>
-        <button type="button" class="btn btn-primary" onclick="editProfile()">
+        <a href="{% url 'frontend:user_edit' user.id %}" class="btn btn-primary">
             <i class="fas fa-edit me-2"></i>Editar Perfil
-        </button>
+        </a>
     </div>
 
     <div class="row">
@@ -225,108 +225,4 @@
     </div>
 </div>
 
-<!-- Modal de edición -->
-<div class="modal fade" id="editProfileModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Editar Perfil</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editProfileForm">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">Nombre</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" 
-                               value="{{ user.first_name|default:'' }}">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Apellido</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" 
-                               value="{{ user.last_name|default:'' }}">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" 
-                               value="{{ user.email }}" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveProfile()">
-                    <i class="fas fa-save me-2"></i>Guardar Cambios
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function editProfile() {
-    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
-    modal.show();
-}
-
-function saveProfile() {
-    const form = document.getElementById('editProfileForm');
-    const formData = new FormData(form);
-    
-    // Mostrar loading
-    const btn = document.querySelector('#editProfileModal .btn-primary');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-    btn.disabled = true;
-    
-    fetch('{% url "frontend:profile" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            first_name: formData.get('first_name'),
-            last_name: formData.get('last_name'),
-            email: formData.get('email')
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Cerrar modal
-            bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
-            
-            // Mostrar mensaje de éxito
-            const alertHtml = `
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            document.querySelector('.main-content').insertAdjacentHTML('afterbegin', alertHtml);
-            
-            // Recargar página para mostrar cambios
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error al guardar el perfil: ' + error.message);
-        
-        // Restaurar botón
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-}
-</script>
 {% endblock %} 

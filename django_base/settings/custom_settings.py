@@ -88,6 +88,11 @@ AUTHENTICATION_BACKENDS = (
 
 AUTH_USER_MODEL = "users.User"
 
+# Configuración de login
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/escritorio/'
+LOGOUT_REDIRECT_URL = '/login/'
+
 REST_AUTH = {
     "USER_DETAILS_SERIALIZER": "users.serializers.UserSerializer",
 }
