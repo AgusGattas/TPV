@@ -127,6 +127,20 @@ def product_detail(request, pk):
     
     product = get_object_or_404(Product, pk=pk, is_active=True)
     
+    # Obtener el último precio de costo de los movimientos de stock
+    stock = Stock.objects.filter(product=product).first()
+    last_cost_price = None
+    
+    if stock:
+        last_cost_price = StockMovement.objects.filter(
+            stock=stock,
+            type='ingreso'
+        ).order_by('-created_at').values_list('cost_price', flat=True).first()
+    
+    # Si no hay movimientos previos, usar el precio de costo del producto
+    if last_cost_price is None:
+        last_cost_price = product.cost_price
+    
     # Movimientos de stock del producto
     stock_movements = StockMovement.objects.filter(
         stock__product=product
@@ -139,6 +153,7 @@ def product_detail(request, pk):
     
     context = {
         'product': product,
+        'last_cost_price': last_cost_price,
         'stock_movements': stock_movements,
         'recent_sales': recent_sales,
     }
@@ -229,6 +244,20 @@ def product_edit(request, pk):
     
     product = get_object_or_404(Product, pk=pk, is_active=True)
     
+    # Obtener el último precio de costo de los movimientos de stock
+    stock = Stock.objects.filter(product=product).first()
+    last_cost_price = None
+    
+    if stock:
+        last_cost_price = StockMovement.objects.filter(
+            stock=stock,
+            type='ingreso'
+        ).order_by('-created_at').values_list('cost_price', flat=True).first()
+    
+    # Si no hay movimientos previos, usar el precio de costo del producto
+    if last_cost_price is None:
+        last_cost_price = product.cost_price
+    
     if request.method == 'POST':
         try:
             # Obtener datos del formulario HTML
@@ -245,6 +274,9 @@ def product_edit(request, pk):
                 messages.error(request, 'El nombre y precio son obligatorios')
                 return render(request, 'frontend/products/edit.html', {'product': product})
             
+            # Guardar el precio de costo anterior para comparar
+            old_cost_price = product.cost_price
+            
             # Actualizar el producto
             product.name = name
             product.price = price
@@ -254,6 +286,32 @@ def product_edit(request, pk):
             product.unit = unit
             product.barcode = barcode
             product.save()
+            
+            # Si el precio de costo cambió, actualizar el último movimiento de stock
+            if old_cost_price != product.cost_price:
+                stock = Stock.objects.filter(product=product).first()
+                if stock:
+                    # Buscar el último movimiento de ingreso
+                    last_movement = StockMovement.objects.filter(
+                        stock=stock,
+                        type='ingreso'
+                    ).order_by('-created_at').first()
+                    
+                    if last_movement:
+                        # Actualizar el precio de costo del último movimiento
+                        last_movement.cost_price = product.cost_price
+                        last_movement.save()
+                        print(f"Actualizado último movimiento de stock para {product.name}: {old_cost_price} -> {product.cost_price}")
+                    else:
+                        # Si no hay movimientos, crear uno con el nuevo precio de costo
+                        StockMovement.objects.create(
+                            stock=stock,
+                            type='ingreso',
+                            quantity=0,
+                            cost_price=product.cost_price,
+                            reason="Actualización de precio de costo"
+                        )
+                        print(f"Creado nuevo movimiento de stock para {product.name} con precio: {product.cost_price}")
             
             # Procesar imagen si se subió una nueva
             if 'image' in request.FILES:
@@ -276,6 +334,7 @@ def product_edit(request, pk):
     
     context = {
         'product': product,
+        'last_cost_price': last_cost_price,
     }
     
     return render(request, 'frontend/products/edit.html', context)
@@ -449,6 +508,18 @@ def stock_list(request):
     elif stock_filter == 'out':
         stocks = stocks.filter(current_quantity=0)
     
+    # Obtener el último precio de costo para cada stock
+    for stock in stocks:
+        last_cost_price = StockMovement.objects.filter(
+            stock=stock,
+            type='ingreso'
+        ).order_by('-created_at').values_list('cost_price', flat=True).first()
+        
+        if last_cost_price is None:
+            last_cost_price = stock.product.cost_price
+        
+        stock.last_cost_price = last_cost_price
+    
     context = {
         'stocks': stocks,
         'search': search,
@@ -497,42 +568,44 @@ def add_stock(request, pk):
     
     stock = get_object_or_404(Stock, pk=pk)
     
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            
-            stock.add_stock(
-                quantity=data['quantity'],
-                cost_price=data['cost_price'],
-                reason=data.get('reason', 'Compra')
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Stock agregado exitosamente',
-                'new_quantity': stock.current_quantity
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': str(e)
-            }, status=400)
-    
     # Obtener el último precio de costo de los movimientos de ingreso
     last_cost_price = StockMovement.objects.filter(
         stock=stock,
         type='ingreso'
     ).order_by('-created_at').values_list('cost_price', flat=True).first()
     
-    # Si no hay movimientos previos, usar el costo promedio actual
+    # Si no hay movimientos previos, usar el precio de costo del producto
     if last_cost_price is None:
-        last_cost_price = stock.average_cost
+        last_cost_price = stock.product.cost_price
     
     context = {
         'stock': stock,
         'last_cost_price': last_cost_price,
     }
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            quantity = int(request.POST.get('quantity', 0))
+            cost_price = Decimal(request.POST.get('cost_price', 0))
+            reason = request.POST.get('reason', 'Compra')
+            custom_reason = request.POST.get('custom_reason', '')
+            
+            if reason == 'Otro' and custom_reason:
+                reason = custom_reason
+            
+            stock.add_stock(
+                quantity=quantity,
+                cost_price=cost_price,
+                reason=reason
+            )
+            
+            messages.success(request, 'Stock agregado exitosamente')
+            return redirect('frontend:stock_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al agregar stock: {str(e)}')
+            return render(request, 'frontend/stock/add_stock.html', context)
     
     return render(request, 'frontend/stock/add_stock.html', context)
 

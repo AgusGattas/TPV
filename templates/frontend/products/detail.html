@@ -149,8 +149,8 @@
         <div class="col-6 col-md-3 mb-3">
             <div class="product-stats">
                 <div class="stat-item">
-                    <div class="stat-value">${{ product.cost_price|floatformat:2 }}</div>
-                    <div class="stat-label">Precio de Costo</div>
+                    <div class="stat-value">${{ last_cost_price|floatformat:2 }}</div>
+                    <div class="stat-label">Último Precio de Costo</div>
                 </div>
             </div>
         </div>
@@ -158,9 +158,9 @@
             <div class="product-stats">
                 <div class="stat-item">
                     <div class="stat-value" id="margin-stat" 
-                         data-cost-price="{{ product.cost_price|default:0 }}" 
+                         data-cost-price="{{ last_cost_price|default:0 }}" 
                          data-sale-price="{{ product.price|default:0 }}">
-                        {% if product.cost_price and product.price and product.cost_price > 0 %}
+                        {% if last_cost_price and product.price and last_cost_price > 0 %}
                             <span id="margin-stat-value"></span>%
                         {% else %}
                             N/A
