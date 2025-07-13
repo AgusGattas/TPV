@@ -519,8 +519,19 @@ def add_stock(request, pk):
                 'message': str(e)
             }, status=400)
     
+    # Obtener el último precio de costo de los movimientos de ingreso
+    last_cost_price = StockMovement.objects.filter(
+        stock=stock,
+        type='ingreso'
+    ).order_by('-created_at').values_list('cost_price', flat=True).first()
+    
+    # Si no hay movimientos previos, usar el costo promedio actual
+    if last_cost_price is None:
+        last_cost_price = stock.average_cost
+    
     context = {
         'stock': stock,
+        'last_cost_price': last_cost_price,
     }
     
     return render(request, 'frontend/stock/add_stock.html', context)

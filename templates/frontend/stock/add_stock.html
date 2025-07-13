@@ -103,11 +103,11 @@
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control" id="cost_price" name="cost_price" 
-                                   step="0.01" min="0" value="{{ stock.average_cost|floatformat:2 }}" required>
+                                   step="0.01" min="0" value="{{ last_cost_price|floatformat:2 }}" required>
                         </div>
                         <div class="form-text">
                             <i class="fas fa-calculator me-1"></i>
-                            Este precio se usará para calcular el nuevo costo promedio
+                            Último precio de costo: ${{ last_cost_price|floatformat:2 }} | Este precio se usará para calcular el nuevo costo promedio
                         </div>
                     </div>
                     
