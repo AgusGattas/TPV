@@ -424,8 +424,12 @@ def sale_create(request):
                 user=request.user,
                 cashbox=current_cashbox,
                 payment_method=data['payment_method'],
-                notes=data.get('notes', '')
+                notes=data.get('notes', ''),
+                sale_discount_percentage=data.get('sale_discount_percentage', 0)
             )
+            
+            # Si se envió un total_final específico, usarlo en lugar del calculado
+            total_final_override = data.get('total_final')
             
             # Crear los items de la venta
             for item_data in data['items']:
@@ -458,6 +462,11 @@ def sale_create(request):
                     quantity=item_data['quantity'],
                     reason=f"Venta #{sale.id}"
                 )
+            
+            # Si se especificó un total_final, actualizarlo
+            if total_final_override is not None:
+                sale.total_final = total_final_override
+                sale.save(update_fields=['total_final'])
             
             return JsonResponse({
                 'success': True,

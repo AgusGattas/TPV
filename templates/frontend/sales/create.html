@@ -88,6 +88,112 @@
         padding: 1.5rem;
     }
     
+    .summary-card .form-control {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: bold;
+    }
+    
+    .summary-card .form-control:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: white;
+        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+    }
+    
+    .summary-card .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .summary-card .input-group-text {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+    
+    /* Estilos para el resumen de venta */
+    .summary-breakdown {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .summary-row:last-child {
+        border-bottom: none;
+    }
+    
+    .summary-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .summary-value {
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+    
+    .summary-value.text-danger {
+        text-shadow: 
+            -1px -1px 0 rgba(255, 255, 255, 0.3),
+            1px -1px 0 rgba(255, 255, 255, 0.3),
+            -1px 1px 0 rgba(255, 255, 255, 0.3),
+            1px 1px 0 rgba(255, 255, 255, 0.3);
+        font-weight: 900;
+        letter-spacing: 0.5px;
+    }
+    
+    .discount-row {
+        background: rgba(220, 53, 69, 0.1);
+        margin: 0 -0.5rem;
+        padding: 0.5rem;
+        border-radius: 5px;
+        border: 2px solid rgba(220, 53, 69, 0.4);
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.2);
+    }
+    
+    .total-discount-row {
+        background: rgba(220, 53, 69, 0.15);
+        margin: 0 -0.5rem;
+        padding: 0.5rem;
+        border-radius: 5px;
+        border: 2px solid rgba(220, 53, 69, 0.6);
+        box-shadow: 0 0 8px rgba(220, 53, 69, 0.3);
+        font-weight: bold;
+    }
+    
+    .summary-row.total-discount-row .summary-label {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: bold;
+    }
+    
+    .discount-row:hover {
+        background: rgba(220, 53, 69, 0.2);
+        border-color: rgba(220, 53, 69, 0.6);
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+    
+    .total-discount-row:hover {
+        background: rgba(220, 53, 69, 0.25);
+        border-color: rgba(220, 53, 69, 0.8);
+        box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+    
     .search-results {
         max-height: 300px;
         overflow-y: auto;
@@ -248,25 +354,96 @@
                     Resumen de Venta
                 </h5>
                 
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <div class="text-white-50 small">Subtotal</div>
-                        <div class="h4 mb-0" id="subtotal">$0</div>
+                <!-- Resumen de montos -->
+                <div class="summary-breakdown mb-3">
+                    <div class="summary-row">
+                        <div class="summary-label">Subtotal</div>
+                        <div class="summary-value" id="subtotal">$0</div>
                     </div>
-                    <div class="col-6">
-                        <div class="text-white-50 small">Descuentos</div>
-                        <div class="h4 mb-0" id="totalDiscount">$0</div>
+                    
+                                         <!-- Descuentos individuales -->
+                     <div class="summary-row discount-row" id="itemsDiscountRow" style="display: none;">
+                         <div class="summary-label">
+                             <i class="fas fa-tag me-1"></i>Descuentos productos
+                         </div>
+                         <div class="summary-value text-danger" id="itemsDiscountDisplay">-$0</div>
+                     </div>
+                    
+                    <!-- Subtotal después de descuentos individuales -->
+                    <div class="summary-row" id="subtotalAfterDiscountsRow" style="display: none;">
+                        <div class="summary-label">Subtotal después de descuentos</div>
+                        <div class="summary-value" id="subtotalAfterDiscounts">$0</div>
+                    </div>
+                    
+                                         <!-- Descuento general -->
+                     <div class="summary-row discount-row" id="saleDiscountRow" style="display: none;">
+                         <div class="summary-label">
+                             <i class="fas fa-percentage me-1"></i>Descuento general
+                         </div>
+                         <div class="summary-value text-danger" id="saleDiscountDisplay">-$0</div>
+                     </div>
+                    
+                                         <!-- Total de descuentos -->
+                     <div class="summary-row total-discount-row" id="totalDiscountRow" style="display: none;">
+                         <div class="summary-label">Total descuentos</div>
+                         <div class="summary-value text-danger" id="totalDiscount">-$0</div>
+                     </div>
+                </div>
+                
+                <!-- Descuento general de la venta -->
+                <div class="mb-3">
+                    <label class="form-label text-white">
+                        <i class="fas fa-percentage me-1"></i>Descuento General
+                    </label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="saleDiscount" 
+                               min="0" max="100" step="0.1" value="0"
+                               onchange="updateSaleDiscount(this.value)"
+                               placeholder="0">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <div class="text-white-50 small mt-1">
+                        <div class="d-flex justify-content-between">
+                            <span>Monto descuento:</span>
+                            <span id="saleDiscountAmount">$0</span>
+                        </div>
+                        <small class="text-white-50 d-block mt-1">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Se aplica sobre el subtotal después de descuentos individuales
+                        </small>
                     </div>
                 </div>
                 
                 <hr class="border-white">
                 
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="text-white-50 small">Total</div>
-                        <div class="h2 mb-0" id="totalFinal">$0</div>
+                <!-- Total editable -->
+                <div class="mb-4">
+                    <label class="form-label text-white">
+                        <i class="fas fa-dollar-sign me-1"></i>Total Final
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control form-control-lg" id="totalFinalEditable" 
+                               min="0" step="0.01" value="0"
+                               onchange="updateTotalFromAmount(this.value)"
+                               placeholder="0.00">
+                    </div>
+                    <div class="text-white-50 small mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Total calculado: <span id="totalFinalDisplay">$0</span></span>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="resetToCalculatedTotal()" 
+                                    title="Restaurar al total calculado automáticamente">
+                                <i class="fas fa-undo me-1"></i>Restaurar
+                            </button>
+                        </div>
+                        <small class="text-white-50 d-block mt-1">
+                            <i class="fas fa-edit me-1"></i>
+                            Edita el total para ajustar el descuento automáticamente
+                        </small>
                     </div>
                 </div>
+                
+                <hr class="border-white my-4">
                 
                 <!-- Método de pago -->
                 <div class="mb-3">
@@ -535,15 +712,175 @@ function removeFromCart(index) {
     updateCartDisplay();
 }
 
+// Actualizar descuento general de la venta
+function updateSaleDiscount(discount) {
+    const newDiscount = parseFloat(discount) || 0;
+    
+    if (newDiscount >= 0 && newDiscount <= 100) {
+        updateSummary();
+    } else {
+        alert('El descuento debe estar entre 0% y 100%');
+        document.getElementById('saleDiscount').value = 0;
+        updateSummary();
+    }
+}
+
 // Actualizar resumen
 function updateSummary() {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity * item.discount / 100), 0);
+    const itemsDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity * item.discount / 100), 0);
+    
+    // Subtotal después de descuentos individuales
+    const subtotalAfterItemsDiscount = subtotal - itemsDiscount;
+    
+    // Descuento general de la venta (sobre el subtotal después de descuentos individuales)
+    const saleDiscountPercentage = parseFloat(document.getElementById('saleDiscount').value) || 0;
+    const saleDiscountAmount = (subtotalAfterItemsDiscount * saleDiscountPercentage) / 100;
+    
+    // Total de descuentos
+    const totalDiscount = itemsDiscount + saleDiscountAmount;
     const totalFinal = subtotal - totalDiscount;
     
+    // Actualizar valores principales
     document.getElementById('subtotal').textContent = `$${subtotal.toFixed(0)}`;
-    document.getElementById('totalDiscount').textContent = `$${totalDiscount.toFixed(0)}`;
-    document.getElementById('totalFinal').textContent = `$${totalFinal.toFixed(0)}`;
+    document.getElementById('totalFinalDisplay').textContent = `$${totalFinal.toFixed(0)}`;
+    document.getElementById('saleDiscountAmount').textContent = `$${saleDiscountAmount.toFixed(0)}`;
+    
+    // Mostrar/ocultar filas según corresponda
+    const itemsDiscountRow = document.getElementById('itemsDiscountRow');
+    const subtotalAfterDiscountsRow = document.getElementById('subtotalAfterDiscountsRow');
+    const saleDiscountRow = document.getElementById('saleDiscountRow');
+    const totalDiscountRow = document.getElementById('totalDiscountRow');
+    
+    // Descuentos individuales
+    if (itemsDiscount > 0) {
+        itemsDiscountRow.style.display = 'flex';
+        document.getElementById('itemsDiscountDisplay').textContent = `-$${itemsDiscount.toFixed(0)}`;
+        document.getElementById('itemsDiscountDisplay').className = 'summary-value text-danger';
+        
+        // Subtotal después de descuentos individuales
+        subtotalAfterDiscountsRow.style.display = 'flex';
+        document.getElementById('subtotalAfterDiscounts').textContent = `$${subtotalAfterItemsDiscount.toFixed(0)}`;
+    } else {
+        itemsDiscountRow.style.display = 'none';
+        subtotalAfterDiscountsRow.style.display = 'none';
+    }
+    
+    // Descuento general
+    if (saleDiscountAmount > 0) {
+        saleDiscountRow.style.display = 'flex';
+        document.getElementById('saleDiscountDisplay').textContent = `-$${saleDiscountAmount.toFixed(0)}`;
+        document.getElementById('saleDiscountDisplay').className = 'summary-value text-danger';
+    } else {
+        saleDiscountRow.style.display = 'none';
+    }
+    
+    // Total de descuentos
+    if (totalDiscount > 0) {
+        totalDiscountRow.style.display = 'flex';
+        document.getElementById('totalDiscount').textContent = `-$${totalDiscount.toFixed(0)}`;
+        document.getElementById('totalDiscount').className = 'summary-value text-danger';
+    } else {
+        totalDiscountRow.style.display = 'none';
+    }
+    
+    // Actualizar el campo editable solo si no ha sido modificado manualmente
+    const totalFinalEditable = document.getElementById('totalFinalEditable');
+    if (!totalFinalEditable.dataset.manuallyEdited) {
+        totalFinalEditable.value = totalFinal.toFixed(2);
+    }
+}
+
+// Actualizar total desde monto ingresado
+function updateTotalFromAmount(amount) {
+    const newTotal = parseFloat(amount) || 0;
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const itemsDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity * item.discount / 100), 0);
+    const subtotalAfterItemsDiscount = subtotal - itemsDiscount;
+    
+    if (newTotal > subtotal) {
+        alert('El total no puede ser mayor al subtotal');
+        updateSummary();
+        return;
+    }
+    
+    if (newTotal < 0) {
+        alert('El total no puede ser negativo');
+        updateSummary();
+        return;
+    }
+    
+    // Calcular el descuento total necesario
+    const totalDiscountNeeded = subtotal - newTotal;
+    const saleDiscountNeeded = totalDiscountNeeded - itemsDiscount;
+    
+    // Calcular el porcentaje de descuento general (sobre el subtotal después de descuentos individuales)
+    let saleDiscountPercentage = 0;
+    if (subtotalAfterItemsDiscount > 0 && saleDiscountNeeded > 0) {
+        saleDiscountPercentage = (saleDiscountNeeded / subtotalAfterItemsDiscount) * 100;
+    }
+    
+    // Si el descuento es muy alto, mostrar advertencia
+    if (saleDiscountPercentage > 100) {
+        alert('El descuento general sería mayor al 100%. Verifica los valores.');
+        updateSummary();
+        return;
+    }
+    
+    // Marcar como editado manualmente
+    document.getElementById('totalFinalEditable').dataset.manuallyEdited = 'true';
+    
+    // Actualizar el descuento general
+    document.getElementById('saleDiscount').value = saleDiscountPercentage.toFixed(2);
+    
+    // Actualizar display
+    document.getElementById('totalFinalDisplay').textContent = `$${newTotal.toFixed(0)}`;
+    document.getElementById('saleDiscountAmount').textContent = `$${saleDiscountNeeded.toFixed(0)}`;
+    
+    // Mostrar/ocultar filas según corresponda
+    const itemsDiscountRow = document.getElementById('itemsDiscountRow');
+    const subtotalAfterDiscountsRow = document.getElementById('subtotalAfterDiscountsRow');
+    const saleDiscountRow = document.getElementById('saleDiscountRow');
+    const totalDiscountRow = document.getElementById('totalDiscountRow');
+    
+    // Descuentos individuales
+    if (itemsDiscount > 0) {
+        itemsDiscountRow.style.display = 'flex';
+        document.getElementById('itemsDiscountDisplay').textContent = `-$${itemsDiscount.toFixed(0)}`;
+        document.getElementById('itemsDiscountDisplay').className = 'summary-value text-danger';
+        
+        // Subtotal después de descuentos individuales
+        subtotalAfterDiscountsRow.style.display = 'flex';
+        document.getElementById('subtotalAfterDiscounts').textContent = `$${subtotalAfterItemsDiscount.toFixed(0)}`;
+    } else {
+        itemsDiscountRow.style.display = 'none';
+        subtotalAfterDiscountsRow.style.display = 'none';
+    }
+    
+    // Descuento general
+    if (saleDiscountNeeded > 0) {
+        saleDiscountRow.style.display = 'flex';
+        document.getElementById('saleDiscountDisplay').textContent = `-$${saleDiscountNeeded.toFixed(0)}`;
+        document.getElementById('saleDiscountDisplay').className = 'summary-value text-danger';
+    } else {
+        saleDiscountRow.style.display = 'none';
+    }
+    
+    // Total de descuentos
+    if (totalDiscountNeeded > 0) {
+        totalDiscountRow.style.display = 'flex';
+        document.getElementById('totalDiscount').textContent = `-$${totalDiscountNeeded.toFixed(0)}`;
+        document.getElementById('totalDiscount').className = 'summary-value text-danger';
+    } else {
+        totalDiscountRow.style.display = 'none';
+    }
+}
+
+// Restaurar al total calculado
+function resetToCalculatedTotal() {
+    const totalFinalEditable = document.getElementById('totalFinalEditable');
+    delete totalFinalEditable.dataset.manuallyEdited;
+    updateSummary();
 }
 
 // Limpiar carrito
@@ -551,6 +888,8 @@ function clearCart() {
     if (confirm('¿Estás seguro de que quieres limpiar el carrito?')) {
         cart = [];
         updateCartDisplay();
+        // Limpiar también el campo editable
+        document.getElementById('totalFinalEditable').dataset.manuallyEdited = '';
     }
 }
 
@@ -563,7 +902,7 @@ function completeSale() {
         return;
     }
     
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity * (1 - item.discount / 100)), 0);
+    const total = parseFloat(document.getElementById('totalFinalEditable').value) || 0;
     const paymentMethod = document.getElementById('paymentMethod').value;
     
     console.log('Total:', total);
@@ -640,6 +979,8 @@ function confirmSale() {
     const saleData = {
         payment_method: document.getElementById('paymentMethod').value,
         notes: document.getElementById('notes').value,
+        sale_discount_percentage: parseFloat(document.getElementById('saleDiscount').value) || 0,
+        total_final: parseFloat(document.getElementById('totalFinalEditable').value) || 0,
         items: cart.map(item => ({
             product_id: item.productId,
             quantity: item.quantity,
@@ -682,6 +1023,7 @@ function confirmSale() {
             cart = [];
             updateCartDisplay();
             document.getElementById('notes').value = '';
+            document.getElementById('totalFinalEditable').dataset.manuallyEdited = '';
             
             // Redirigir al detalle de la venta
             setTimeout(() => {

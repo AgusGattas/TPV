@@ -392,10 +392,32 @@
                     </div>
                 </div>
                 
-                {% if sale.total_discount > 0 %}
+                {% if sale.items_discount_amount > 0 %}
                 <div class="row mb-2">
                     <div class="col-6">
-                        <div class="text-white-50 small">Descuentos</div>
+                        <div class="text-white-50 small">Descuentos Productos</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">-${{ sale.items_discount_amount|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if sale.sale_discount_percentage > 0 %}
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Descuento General</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="fw-bold">-${{ sale.sale_discount_amount|floatformat:2 }} <span class="small">(-{{ sale.sale_discount_percentage }}%)</span></div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if sale.total_discount > 0 and sale.items_discount_amount > 0 and sale.sale_discount_percentage > 0 %}
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <div class="text-white-50 small">Total Descuentos</div>
                     </div>
                     <div class="col-6 text-end">
                         <div class="fw-bold">-${{ sale.total_discount|floatformat:2 }}</div>

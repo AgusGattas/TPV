@@ -29,6 +29,7 @@ class Sale(BaseModel):
     ticket_number = models.CharField(_("Ticket Number"), max_length=20, unique=True, blank=True)
     subtotal = models.DecimalField(_("Subtotal"), max_digits=10, decimal_places=2, default=0)
     total_discount = models.DecimalField(_("Total Discount"), max_digits=10, decimal_places=2, default=0)
+    sale_discount_percentage = models.DecimalField(_("Sale Discount Percentage"), max_digits=5, decimal_places=2, default=0)
     total_final = models.DecimalField(_("Total Final"), max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(_("Payment Method"), max_length=20, choices=PAYMENT_METHODS)
     notes = models.TextField(_("Notes"), blank=True, null=True)
@@ -72,13 +73,37 @@ class Sale(BaseModel):
         
         items = self.items.all()
         self.subtotal = sum(item.subtotal for item in items)
-        self.total_discount = sum(item.discount_amount for item in items)
+        
+        # Descuento de productos individuales
+        items_discount = sum(item.discount_amount for item in items)
+        
+        # Subtotal después de descuentos individuales
+        subtotal_after_items_discount = self.subtotal - items_discount
+        
+        # Descuento general de la venta (sobre el subtotal después de descuentos individuales)
+        sale_discount_amount = (subtotal_after_items_discount * self.sale_discount_percentage) / 100
+        
+        # Total de descuentos
+        self.total_discount = items_discount + sale_discount_amount
+        
+        # Total final
         self.total_final = self.subtotal - self.total_discount
 
     def cancel_sale(self):
         """Cancela la venta (soft delete)"""
         self.is_active = False
         self.save()
+
+    @property
+    def sale_discount_amount(self):
+        """Calcula el monto del descuento general de la venta"""
+        subtotal_after_items_discount = self.subtotal - self.items_discount_amount
+        return (subtotal_after_items_discount * self.sale_discount_percentage) / 100
+
+    @property
+    def items_discount_amount(self):
+        """Calcula el monto total de descuentos de productos individuales"""
+        return sum(item.discount_amount for item in self.items.all())
 
 
 class SaleItem(BaseModel):
