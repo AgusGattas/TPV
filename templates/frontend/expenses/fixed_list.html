@@ -1,0 +1,317 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Gastos Fijos - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Gastos Fijos</h1>
+                <div class="title-subtitle">
+                    Gestión de gastos fijos mensuales
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:expense_fixed_create' %}" class="btn btn-primary btn-lg action-btn">
+                <i class="fas fa-plus me-2"></i>Nuevo Gasto Fijo
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ filters.search|default:'' }}" placeholder="Buscar por nombre...">
+                </div>
+                <div class="col-md-4">
+                    <label for="payment_status" class="form-label">Estado de Pago</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="">Todos</option>
+                        <option value="up_to_date" {% if filters.payment_status == 'up_to_date' %}selected{% endif %}>
+                            Al Día
+                        </option>
+                        <option value="overdue" {% if filters.payment_status == 'overdue' %}selected{% endif %}>
+                            Vencido
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="btn-group w-100" role="group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Filtrar
+                        </button>
+                        <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de gastos fijos -->
+    {% if expenses %}
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Monto</th>
+                                <th>Frecuencia</th>
+                                <th>Vence Día</th>
+                                <th>Estado</th>
+                                <th>Estado de Pago</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3">
+                                            <div class="avatar-title bg-primary rounded-circle">
+                                                <i class="fas fa-cog"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ expense.name }}</h6>
+                                            {% if expense.description %}
+                                                <small class="text-muted">{{ expense.description|truncatewords:10 }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">${{ expense.amount|floatformat:0 }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ expense.get_frequency_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">{{ expense.due_day }}</span>
+                                </td>
+                                <td>
+                                    {% if expense.is_active %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if expense.is_up_to_date %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Al Día
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Vencido
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'frontend:fixed_expense_account_status' pk=expense.pk %}" 
+                                       class="btn btn-sm btn-primary" title="Estado de Cuenta">
+                                        <i class="fas fa-file-invoice me-1"></i>Estado de Cuenta
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        {% if expenses.has_other_pages %}
+        <nav aria-label="Paginación de gastos fijos" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if expenses.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ expenses.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in expenses.paginator.page_range %}
+                    {% if expenses.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > expenses.number|add:'-3' and num < expenses.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if expenses.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ expenses.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No se encontraron gastos fijos</h4>
+            <p class="text-muted">
+                {% if filters.category_id or filters.frequency or filters.search %}
+                    No hay gastos fijos que coincidan con los filtros aplicados
+                {% else %}
+                    Aún no hay gastos fijos registrados
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.title-icon {
+    font-size: 2.5rem;
+    margin-right: 1.5rem;
+    opacity: 0.9;
+}
+
+.title-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-content h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.title-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 1rem 2rem;
+    font-weight: 600;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary.action-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.avatar-sm {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-title {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+.badge {
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+</style>
+{% endblock %} 

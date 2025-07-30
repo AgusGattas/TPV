@@ -13,6 +13,8 @@ from products.urls import router as products_router
 from sales.urls import router as sales_router
 from cashbox.urls import router as cashbox_router
 from stock.urls import router as stock_router
+from suppliers.urls import router as suppliers_router
+from expenses.urls import router as expenses_router
 
 from platform_configurations.urls import router as platform_configurations_router
 
@@ -37,6 +39,8 @@ base_router.registry.extend(products_router.registry)
 base_router.registry.extend(sales_router.registry)
 base_router.registry.extend(cashbox_router.registry)
 base_router.registry.extend(stock_router.registry)
+base_router.registry.extend(suppliers_router.registry)
+base_router.registry.extend(expenses_router.registry)
 
 
 

@@ -1,0 +1,266 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Crear Boleta - {{ expense.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-plus title-icon"></i>
+            <h1>Crear Boleta</h1>
+        </div>
+        <div class="title-subtitle">
+            Nueva boleta para {{ expense.name }}
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:expense_bills_list' expense_pk=expense.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del costo fijo -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-info-circle me-2"></i>
+                Información del Costo Fijo
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Nombre:</strong><br>
+                    {{ expense.name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Categoría:</strong><br>
+                    <span class="badge" style="background-color: {{ expense.category.color }}; color: white;">
+                        {{ expense.category_name }}
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Monto Mensual:</strong><br>
+                    ${{ expense.monthly_amount|floatformat:0 }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Día de Vencimiento:</strong><br>
+                    {{ expense.due_day }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="year" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Año *
+                                    </label>
+                                    <select class="form-select" id="year" name="year" required>
+                                        <option value="">Seleccionar año</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2025" selected>2025</option>
+                                        <option value="2026">2026</option>
+                                        <option value="2027">2027</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="month" class="form-label">
+                                        <i class="fas fa-calendar-alt me-2"></i>Mes *
+                                    </label>
+                                    <select class="form-select" id="month" name="month" required>
+                                        <option value="">Seleccionar mes</option>
+                                        <option value="1">Enero</option>
+                                        <option value="2">Febrero</option>
+                                        <option value="3">Marzo</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Mayo</option>
+                                        <option value="6">Junio</option>
+                                        <option value="7">Julio</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Septiembre</option>
+                                        <option value="10">Octubre</option>
+                                        <option value="11">Noviembre</option>
+                                        <option value="12">Diciembre</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Monto *
+                                    </label>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           step="0.01" min="0" value="{{ expense.monthly_amount|floatformat:2 }}" required>
+                                    <div class="form-text">Monto de la boleta (por defecto el monto mensual)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">
+                                        <i class="fas fa-calendar-day me-2"></i>Fecha de Vencimiento *
+                                    </label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date" required>
+                                    <div class="form-text">Fecha límite para el pago</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-2"></i>Descripción
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Descripción opcional de la boleta..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:expense_bills_list' expense_pk=expense.pk %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Crear Boleta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.title-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+}
+</style>
+
+<script>
+// Establecer la fecha de vencimiento por defecto basada en el día de vencimiento del costo fijo
+document.addEventListener('DOMContentLoaded', function() {
+    const dueDay = {{ expense.due_day }};
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    
+    // Establecer año y mes actuales por defecto
+    document.getElementById('year').value = currentYear;
+    document.getElementById('month').value = currentMonth;
+    
+    // Establecer fecha de vencimiento por defecto
+    const defaultDueDate = new Date(currentYear, currentMonth - 1, dueDay);
+    if (defaultDueDate < new Date()) {
+        // Si la fecha ya pasó, usar el próximo mes
+        defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+    }
+    
+    document.getElementById('due_date').value = defaultDueDate.toISOString().split('T')[0];
+    
+    // Actualizar fecha de vencimiento cuando cambien año o mes
+    document.getElementById('year').addEventListener('change', updateDueDate);
+    document.getElementById('month').addEventListener('change', updateDueDate);
+    
+    function updateDueDate() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        
+        if (year && month) {
+            const dueDate = new Date(year, month - 1, dueDay);
+            document.getElementById('due_date').value = dueDate.toISOString().split('T')[0];
+        }
+    }
+});
+</script>
+{% endblock %} 

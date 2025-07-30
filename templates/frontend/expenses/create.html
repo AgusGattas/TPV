@@ -1,0 +1,199 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Crear Gasto Fijo - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-plus title-icon"></i>
+            <h1>Crear Gasto Fijo</h1>
+        </div>
+        <div class="title-subtitle">
+            Agregar nuevo gasto fijo mensual
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="fas fa-tag me-2"></i>Nombre del Gasto *
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ form.name.value|default:'' }}" required>
+                                    <div class="form-text">Ej: Alquiler, Luz, Internet, etc.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">
+                                        <i class="fas fa-folder me-2"></i>Categoría *
+                                    </label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}" {% if form.category.value == category.id %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Monto *
+                                    </label>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           step="0.01" min="0" value="{{ form.amount.value|default:'' }}" required>
+                                    <div class="form-text">Monto total del gasto</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="frequency" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Frecuencia *
+                                    </label>
+                                    <select class="form-select" id="frequency" name="frequency" required>
+                                        <option value="">Seleccionar frecuencia</option>
+                                        <option value="monthly" {% if form.frequency.value == 'monthly' %}selected{% endif %}>Mensual</option>
+                                        <option value="quarterly" {% if form.frequency.value == 'quarterly' %}selected{% endif %}>Trimestral</option>
+                                        <option value="biannual" {% if form.frequency.value == 'biannual' %}selected{% endif %}>Semestral</option>
+                                        <option value="annual" {% if form.frequency.value == 'annual' %}selected{% endif %}>Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="due_day" class="form-label">
+                                        <i class="fas fa-calendar-day me-2"></i>Día de Vencimiento *
+                                    </label>
+                                    <input type="number" class="form-control" id="due_day" name="due_day" 
+                                           min="1" max="31" value="{{ form.due_day.value|default:'' }}" required>
+                                    <div class="form-text">Día del mes en que vence</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-2"></i>Descripción
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Descripción opcional del gasto...">{{ form.description.value|default:'' }}</textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Crear Gasto Fijo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.title-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %} 

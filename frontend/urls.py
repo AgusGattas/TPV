@@ -52,6 +52,37 @@ urlpatterns = [
     # Reportes (solo admin)
     path('reportes/', views.reports, name='reports'),
     
+    # Dashboard Financiero (solo admin)
+    path('dashboard-financiero/', views.financial_dashboard, name='financial_dashboard'),
+    
+    # Proveedores (solo admin)
+    path('proveedores/', views.suppliers_list, name='suppliers_list'),
+    path('proveedores/crear/', views.supplier_create, name='supplier_create'),
+    path('proveedores/<int:pk>/', views.supplier_detail, name='supplier_detail'),
+    path('proveedores/<int:pk>/editar/', views.supplier_edit, name='supplier_edit'),
+    path('proveedores/<int:pk>/eliminar/', views.supplier_delete, name='supplier_delete'),
+    path('proveedores/<int:pk>/estado-cuenta/', views.supplier_account_status, name='supplier_account_status'),
+    path('proveedores/<int:supplier_pk>/facturas/', views.supplier_invoices_list, name='supplier_invoices_list'),
+    path('proveedores/<int:supplier_pk>/facturas/crear/', views.supplier_invoice_create, name='supplier_invoice_create'),
+    path('proveedores/<int:supplier_pk>/facturas/<int:invoice_pk>/editar/', views.supplier_invoice_edit, name='supplier_invoice_edit'),
+    path('proveedores/<int:supplier_pk>/facturas/<int:invoice_pk>/eliminar/', views.supplier_invoice_delete, name='supplier_invoice_delete'),
+    path('proveedores/<int:supplier_pk>/pagos/crear/', views.supplier_payment_create, name='supplier_payment_create'),
+    path('proveedores/<int:supplier_pk>/pagos/<int:payment_pk>/editar/', views.supplier_payment_edit, name='supplier_payment_edit'),
+    path('proveedores/<int:supplier_pk>/pagos/<int:payment_pk>/eliminar/', views.supplier_payment_delete, name='supplier_payment_delete'),
+    
+    # Costos Fijos (solo admin)
+    path('costos-fijos/', views.expenses_fixed_list, name='expenses_fixed_list'),
+    path('costos-fijos/crear/', views.expense_fixed_create, name='expense_fixed_create'),
+    path('costos-fijos/<int:pk>/', views.expense_fixed_detail_redirect, name='expense_fixed_detail'),
+    path('costos-fijos/<int:pk>/estado-cuenta/', views.fixed_expense_account_status, name='fixed_expense_account_status'),
+    path('costos-fijos/<int:expense_pk>/boletas/', views.expense_bills_list_redirect, name='expense_bills_list'),
+    path('costos-fijos/<int:expense_pk>/boletas/crear/', views.expense_bill_create, name='expense_bill_create'),
+    path('costos-fijos/<int:expense_pk>/boletas/<int:bill_pk>/editar/', views.expense_bill_edit, name='expense_bill_edit'),
+    path('costos-fijos/<int:expense_pk>/boletas/<int:bill_pk>/eliminar/', views.expense_bill_delete, name='expense_bill_delete'),
+    path('costos-fijos/<int:expense_pk>/pagos/crear/', views.expense_payment_create, name='expense_payment_create'),
+    path('costos-fijos/<int:expense_pk>/pagos/<int:payment_pk>/editar/', views.expense_payment_edit, name='expense_payment_edit'),
+    path('costos-fijos/boleta/<int:bill_id>/pagar/', views.expense_bill_pay, name='expense_bill_pay'),
+    
     # Perfil
     path('perfil/', views.profile, name='profile'),
     

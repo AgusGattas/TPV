@@ -1,0 +1,196 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Editar Pago - {{ supplier.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-edit title-icon"></i>
+            <h1>Editar Pago</h1>
+        </div>
+        <div class="title-subtitle">
+            Modificar pago de {{ supplier.name }}
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:supplier_account_status' pk=supplier.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="invoice" class="form-label">
+                                        <i class="fas fa-file-invoice me-2"></i>Factura *
+                                    </label>
+                                    <select class="form-select" id="invoice" name="invoice" required>
+                                        <option value="">Seleccionar factura...</option>
+                                        {% for invoice in invoices %}
+                                            <option value="{{ invoice.id }}" 
+                                                    {% if invoice.id == payment.invoice.id %}selected{% endif %}>
+                                                {{ invoice.invoice_number }} - ${{ invoice.total_amount }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Selecciona la factura a pagar</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Monto del Pago *
+                                    </label>
+                                    <input type="number" step="0.01" class="form-control" id="amount" name="amount" 
+                                           value="{{ payment.amount_str }}" required>
+                                    <div class="form-text">Monto a pagar</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_date" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Fecha de Pago *
+                                    </label>
+                                    <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                           value="{{ payment.payment_date|date:'Y-m-d' }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_method" class="form-label">
+                                        <i class="fas fa-credit-card me-2"></i>Método de Pago *
+                                    </label>
+                                    <select class="form-select" id="payment_method" name="payment_method" required>
+                                        <option value="">Seleccionar método...</option>
+                                        <option value="cash" {% if payment.payment_method == 'cash' %}selected{% endif %}>Efectivo</option>
+                                        <option value="transfer" {% if payment.payment_method == 'transfer' %}selected{% endif %}>Transferencia</option>
+                                        <option value="check" {% if payment.payment_method == 'check' %}selected{% endif %}>Cheque</option>
+                                        <option value="card" {% if payment.payment_method == 'card' %}selected{% endif %}>Tarjeta</option>
+                                        <option value="other" {% if payment.payment_method == 'other' %}selected{% endif %}>Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reference" class="form-label">
+                                <i class="fas fa-hashtag me-2"></i>Referencia
+                            </label>
+                            <input type="text" class="form-control" id="reference" name="reference" 
+                                   value="{{ payment.reference|default:'' }}" placeholder="Número de comprobante...">
+                            <div class="form-text">Número de comprobante o referencia</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:supplier_payment_delete' supplier_pk=supplier.pk payment_pk=payment.pk %}" 
+                               class="btn btn-outline-danger me-md-2"
+                               onclick="return confirm('¿Estás seguro de que quieres eliminar este pago?')">
+                                <i class="fas fa-trash me-2"></i>Eliminar Pago
+                            </a>
+                            <a href="{% url 'frontend:supplier_account_status' pk=supplier.pk %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.title-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,476 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Estado de Cuenta - {{ fixed_expense.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header Mejorado -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Estado de Cuenta</h1>
+                <div class="supplier-name">
+                    <i class="fas fa-cog me-2"></i>
+                    <span class="supplier-name-text">{{ fixed_expense.name|title }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Costos Fijos
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros de Fecha -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-filter me-2"></i>Filtros de Fecha
+                    </h5>
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="year" class="form-label">Año</label>
+                            <select class="form-select" id="year" name="year">
+                                {% for year in years %}
+                                    <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                        {{ year }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="month" class="form-label">Mes</label>
+                            <select class="form-select" id="month" name="month">
+                                <option value="" {% if not selected_month %}selected{% endif %}>Todos los meses</option>
+                                {% for month_num, month_name in months %}
+                                    <option value="{{ month_num }}" {% if month_num == selected_month %}selected{% endif %}>
+                                        {{ month_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-2"></i>Filtrar
+                            </button>
+                            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del Gasto Fijo y Balance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>INFORMACIÓN DEL GASTO
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Nombre:</strong><br>
+                            {{ fixed_expense.name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Categoría:</strong><br>
+                            {{ fixed_expense.category.name }}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <strong>Monto Mensual:</strong><br>
+                            ${{ fixed_expense.amount|floatformat:2 }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Frecuencia:</strong><br>
+                            {% if fixed_expense.frequency == 'monthly' %}Mensual
+                            {% elif fixed_expense.frequency == 'quarterly' %}Trimestral
+                            {% elif fixed_expense.frequency == 'biannual' %}Semestral
+                            {% else %}Anual
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if fixed_expense.description %}
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <strong>Descripción:</strong><br>
+                            {{ fixed_expense.description }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-balance-scale me-2"></i>Balance del Período
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Total Período:</strong><br>
+                            <span class="h4 text-primary">
+                                ${{ total_amount|floatformat:2 }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Fecha de Emisión:</strong><br>
+                            {{ issue_date|date:"d/m/Y" }}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <strong>Pagado:</strong><br>
+                            <span class="h5 text-success">
+                                ${{ total_paid|floatformat:2 }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Pendiente:</strong><br>
+                            <span class="h5 {% if balance > 0 %}text-warning{% else %}text-success{% endif %}">
+                                ${{ balance|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Acción Mejorados -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'frontend:expense_bill_create' expense_pk=fixed_expense.pk %}" class="btn btn-primary btn-lg action-btn">
+                <i class="fas fa-plus me-2"></i>Nueva Boleta
+            </a>
+        </div>
+    </div>
+
+    <!-- Boletas y Pagos -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-list me-2"></i>Boletas y Pagos
+            </h5>
+            
+            {% if expenses_data %}
+                <div class="accordion" id="expensesAccordion">
+                    {% for expense_data in expenses_data %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ expense_data.expense.id }}">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ expense_data.expense.id }}" 
+                                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                    aria-controls="collapse{{ expense_data.expense.id }}">
+                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                    <div>
+                                        <strong>{{ expense_data.expense.get_month_display }} {{ expense_data.expense.year }}</strong>
+                                        <small class="text-muted ms-2">{{ expense_data.expense.due_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">${{ expense_data.expense.amount|floatformat:2 }}</div>
+                                        <small class="{% if expense_data.remaining_amount > 0 %}text-warning{% else %}text-success{% endif %}">
+                                            {% if expense_data.remaining_amount > 0 %}
+                                                Pendiente: ${{ expense_data.remaining_amount|floatformat:2 }}
+                                            {% else %}
+                                                Pagada
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ expense_data.expense.id }}" 
+                             class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ expense_data.expense.id }}" 
+                             data-bs-parent="#expensesAccordion">
+                            <div class="accordion-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <h6>Detalles de la Boleta</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Período:</strong> {{ expense_data.expense.get_month_display }} {{ expense_data.expense.year }}</li>
+                                            <li><strong>Fecha de Vencimiento:</strong> {{ expense_data.expense.due_date|date:"d/m/Y" }}</li>
+                                            <li><strong>Monto:</strong> ${{ expense_data.expense.amount|floatformat:2 }}</li>
+                                            {% if expense_data.expense.notes %}
+                                                <li><strong>Notas:</strong> {{ expense_data.expense.notes }}</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <div class="mb-2">
+                                            <a href="{% url 'frontend:expense_bill_edit' expense_pk=fixed_expense.pk bill_pk=expense_data.expense.pk %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit me-1"></i>Editar Boleta
+                                            </a>
+                                        </div>
+                                        {% if expense_data.remaining_amount > 0 %}
+                                            <div class="mb-2">
+                                                <a href="{% url 'frontend:expense_payment_create' expense_pk=fixed_expense.pk %}" 
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-plus me-1"></i>Agregar Pago
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6>Pagos Realizados</h6>
+                                {% if expense_data.payments %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Monto</th>
+                                                    <th>Método</th>
+                                                    <th>Referencia</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for payment in expense_data.payments %}
+                                                <tr>
+                                                    <td>{{ payment.payment_date|date:"d/m/Y" }}</td>
+                                                    <td>${{ payment.amount|floatformat:2 }}</td>
+                                                    <td>
+                                                        {% if payment.payment_method == 'cash' %}Efectivo
+                                                        {% elif payment.payment_method == 'transfer' %}Transferencia
+                                                        {% elif payment.payment_method == 'check' %}Cheque
+                                                        {% elif payment.payment_method == 'card' %}Tarjeta
+                                                        {% elif payment.payment_method == 'automatic' %}Débito Automático
+                                                        {% else %}Otro
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ payment.reference|default:"-" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'frontend:expense_payment_edit' expense_pk=fixed_expense.pk payment_pk=payment.pk %}" 
+                                                           class="btn btn-sm btn-outline-secondary">
+                                                            <i class="fas fa-edit me-1"></i>Editar
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-credit-card fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No se han registrado pagos para esta boleta.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay boletas</h4>
+                    <p class="text-muted">Aún no se han registrado boletas para este gasto fijo en el período seleccionado.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.title-icon {
+    font-size: 2.5rem;
+    margin-right: 1.5rem;
+    opacity: 0.9;
+}
+
+.title-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-content h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.supplier-name {
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+    opacity: 0.95;
+    font-weight: 500;
+}
+
+.supplier-name-text {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.title-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.title-actions .btn {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.title-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.accordion-item {
+    border: none;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.accordion-button {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: none;
+    padding: 1.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.accordion-button:not(.collapsed) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border: none;
+}
+
+.accordion-body {
+    padding: 1.5rem;
+    background: #f8f9fa;
+}
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.action-btn {
+    padding: 1rem 2rem;
+    font-weight: 600;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary.action-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+}
+
+.btn-success.action-btn {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    border: none;
+}
+</style>
+
+<script>
+// Auto-completar fecha actual en filtros
+document.addEventListener('DOMContentLoaded', function() {
+    // Si no hay filtros seleccionados, mostrar todos los meses por defecto
+    const yearSelect = document.getElementById('year');
+    const monthSelect = document.getElementById('month');
+    
+    if (yearSelect && monthSelect) {
+        // El año actual ya está seleccionado por defecto en el backend
+        // El mes se deja en "Todos los meses" por defecto
+    }
+});
+</script>
+{% endblock %} 

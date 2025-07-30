@@ -36,6 +36,9 @@ MY_APPS = [
     "sales",
     "cashbox",
     "stock",
+    "suppliers",
+    "expenses",
+    "analytics",
 ]
 
 INSTALLED_APPS = THIRD_APPS + MY_APPS + BASE_APPS

@@ -1,0 +1,183 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Editar Boleta - {{ fixed_expense.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div>
+                <h1 class="mb-0">Editar Boleta</h1>
+                <div class="title-subtitle">
+                    Modificar boleta para {{ fixed_expense.name }}
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Estado de Cuenta
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="year" class="form-label">Año *</label>
+                                    <select class="form-select" id="year" name="year" required>
+                                        <option value="">Seleccionar año...</option>
+                                        {% for year in years %}
+                                            <option value="{{ year }}" {% if year == bill.year %}selected{% endif %}>
+                                                {{ year }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="month" class="form-label">Mes *</label>
+                                    <select class="form-select" id="month" name="month" required>
+                                        <option value="">Seleccionar mes...</option>
+                                        {% for month_num, month_name in months %}
+                                            <option value="{{ month_num }}" {% if month_num == bill.month %}selected{% endif %}>
+                                                {{ month_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">Monto *</label>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           value="{{ bill.amount_str }}" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">Fecha de Vencimiento *</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date" 
+                                           value="{{ bill.due_date|date:'Y-m-d' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Descripción adicional de la boleta...">{{ bill.notes|default:'' }}</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" 
+                               class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="button" class="btn btn-danger me-md-2" 
+                                    onclick="confirmDelete()">
+                                <i class="fas fa-trash me-2"></i>Eliminar Boleta
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Actualizar Boleta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar esta boleta?</p>
+                <p class="mb-0"><strong>Período:</strong> {{ bill.get_month_display }} {{ bill.year }}</p>
+                <p class="mb-0"><strong>Monto:</strong> ${{ bill.amount }}</p>
+                {% if bill.payments.exists %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡Atención!</strong> Esta boleta tiene pagos asociados. 
+                        Al eliminarla, también se eliminarán todos los pagos relacionados.
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <a href="{% url 'frontend:expense_bill_delete' expense_pk=fixed_expense.pk bill_pk=bill.pk %}" 
+                   class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Eliminar Definitivamente
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+</script>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+</style>
+{% endblock %} 

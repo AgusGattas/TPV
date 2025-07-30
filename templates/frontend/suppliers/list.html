@@ -1,0 +1,276 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Listado de Proveedores - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-truck title-icon"></i>
+            <h1>Listado de Proveedores</h1>
+        </div>
+        <div class="title-subtitle">
+            Gestión de proveedores y estado de cuentas
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:dashboard' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            <a href="{% url 'frontend:supplier_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>+ Nuevo Proveedor
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ filters.search|default:'' }}" placeholder="Buscar por nombre, CUIT o email...">
+                </div>
+                <div class="col-md-4">
+                    <label for="payment_status" class="form-label">Estado de Pago</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="">Todos</option>
+                        <option value="up_to_date" {% if filters.payment_status == 'up_to_date' %}selected{% endif %}>
+                            Al Día
+                        </option>
+                        <option value="overdue" {% if filters.payment_status == 'overdue' %}selected{% endif %}>
+                            Vencido
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="btn-group w-100" role="group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Filtrar
+                        </button>
+                        <a href="{% url 'frontend:suppliers_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Proveedores -->
+    <div class="card">
+        <div class="card-body">
+            {% if suppliers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <i class="fas fa-sort me-1"></i>#
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort me-1"></i>Proveedor
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort me-1"></i>CUIT
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort me-1"></i>Teléfono
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort me-1"></i>Email
+                                </th>
+                                <th>Estado de Pago</th>
+                                <th>Estado de Cuenta</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier in suppliers %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <strong>{{ supplier.name }}</strong>
+                                </td>
+                                <td>{{ supplier.cuit|default:"-" }}</td>
+                                <td>{{ supplier.phone|default:"-" }}</td>
+                                <td>{{ supplier.email|default:"-" }}</td>
+                                <td>
+                                    {% if supplier.is_up_to_date %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Al Día
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Vencido
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'frontend:supplier_account_status' pk=supplier.pk %}" 
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-folder me-1"></i>Estado de Cuenta
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'frontend:supplier_edit' pk=supplier.pk %}" 
+                                           class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit me-1"></i>Editar Proveedor
+                                        </a>
+                                        {% if supplier.invoices.count == 0 %}
+                                            <a href="{% url 'frontend:supplier_delete' pk=supplier.pk %}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('¿Estás seguro de que quieres eliminar el proveedor {{ supplier.name }}?')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                                                    title="No se puede eliminar porque tiene {{ supplier.invoices.count }} factura(s) asociada(s)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                {% if suppliers.has_other_pages %}
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        Mostrando {{ suppliers.start_index }} a {{ suppliers.end_index }} de {{ suppliers.paginator.count }} registros
+                    </div>
+                    <nav aria-label="Paginación de proveedores">
+                        <ul class="pagination mb-0">
+                            {% if suppliers.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ suppliers.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                                        Anterior
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">{{ suppliers.number }}</span>
+                            </li>
+
+                            {% if suppliers.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ suppliers.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                                        Siguiente
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% else %}
+                <div class="text-center mt-3">
+                    Mostrando 1 a {{ suppliers.paginator.count }} de {{ suppliers.paginator.count }} registros
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No se encontraron proveedores</h4>
+                    <p class="text-muted">
+                        {% if search %}
+                            No hay proveedores que coincidan con "{{ search }}"
+                        {% else %}
+                            Aún no hay proveedores registrados
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.title-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.pagination .page-link {
+    border-radius: 6px;
+    margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+</style>
+{% endblock %} 

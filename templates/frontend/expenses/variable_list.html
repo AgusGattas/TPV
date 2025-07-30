@@ -1,0 +1,212 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Gastos Variables - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-receipt title-icon"></i>
+            <h1>Gastos Variables</h1>
+        </div>
+        <div class="title-subtitle">
+            Gestión de gastos variables y ocasionales
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Categoría</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">Todas las categorías</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if filters.category_id == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="payment_status" class="form-label">Estado</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="">Todos</option>
+                        <option value="pending" {% if filters.payment_status == 'pending' %}selected{% endif %}>Pendiente</option>
+                        <option value="paid" {% if filters.payment_status == 'paid' %}selected{% endif %}>Pagado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ filters.date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ filters.date_to }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                    <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de gastos variables -->
+    {% if expenses %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Método de Pago</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td>
+                            <strong>{{ expense.name }}</strong>
+                            {% if expense.description %}
+                            <br><small class="text-muted">{{ expense.description|truncatewords:5 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge" style="background-color: {{ expense.category.color }}; color: white;">
+                                {{ expense.category_name }}
+                            </span>
+                        </td>
+                        <td>{{ expense.expense_date|date:"d/m/Y" }}</td>
+                        <td>${{ expense.amount|floatformat:2 }}</td>
+                        <td>
+                            {% if expense.payment_status == 'paid' %}
+                                <span class="badge bg-success">Pagado</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.payment_method %}
+                                {{ expense.get_payment_method_display }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-eye me-2"></i>Ver Detalles
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-edit me-2"></i>Editar
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-trash me-2"></i>Eliminar
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        {% if expenses.has_other_pages %}
+        <nav aria-label="Paginación de gastos variables">
+            <ul class="pagination justify-content-center">
+                {% if expenses.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ expenses.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in expenses.paginator.page_range %}
+                    {% if expenses.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > expenses.number|add:'-3' and num < expenses.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if expenses.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ expenses.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No se encontraron gastos variables</h4>
+            <p class="text-muted">
+                {% if filters.category_id or filters.payment_status or filters.date_from or filters.date_to or filters.search %}
+                    No hay gastos variables que coincidan con los filtros aplicados
+                {% else %}
+                    Aún no hay gastos variables registrados
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Enlaces rápidos -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-link me-2"></i>
+                Acciones Rápidas
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-danger w-100 mb-2">
+                        <i class="fas fa-money-bill-wave me-2"></i>Gastos Fijos
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-danger w-100 mb-2">
+                        <i class="fas fa-money-bill-wave me-2"></i>Costos Fijos
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:financial_dashboard' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-chart-line me-2"></i>Dashboard Financiero
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:dashboard' %}" class="btn btn-outline-secondary w-100 mb-2">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

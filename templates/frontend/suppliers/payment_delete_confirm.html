@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Pago{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-main-title">
+                <div class="title-container">
+                    <div class="title-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h1 class="mb-0">Eliminar Pago</h1>
+                        <div class="title-subtitle">
+                            Confirmar eliminación de pago del proveedor {{ supplier.name }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ¿Estás seguro de que quieres eliminar este pago?
+                        </h5>
+                        <p class="mb-0">
+                            Esta acción no se puede deshacer. Se eliminará permanentemente el pago y se actualizará el estado de la factura.
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2"></i>Información del Pago</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Monto:</strong> ${{ payment.amount }}</li>
+                                <li><strong>Fecha:</strong> {{ payment.payment_date|date:"d/m/Y" }}</li>
+                                <li><strong>Método:</strong> 
+                                    {% if payment.payment_method == 'cash' %}Efectivo
+                                    {% elif payment.payment_method == 'transfer' %}Transferencia
+                                    {% elif payment.payment_method == 'check' %}Cheque
+                                    {% elif payment.payment_method == 'card' %}Tarjeta
+                                    {% else %}Otro
+                                    {% endif %}
+                                </li>
+                                {% if payment.reference %}
+                                    <li><strong>Referencia:</strong> {{ payment.reference }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-invoice me-2"></i>Factura Asociada</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Número:</strong> {{ payment.invoice.invoice_number }}</li>
+                                <li><strong>Monto Total:</strong> ${{ payment.invoice.total_amount }}</li>
+                                <li><strong>Pendiente Actual:</strong> ${{ payment.invoice.remaining_amount }}</li>
+                                <li><strong>Estado:</strong> 
+                                    {% if payment.invoice.is_paid %}
+                                        <span class="badge bg-success">Pagada</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3" role="alert">
+                        <h6><i class="fas fa-info-circle me-2"></i>Efecto de la Eliminación</h6>
+                        <p class="mb-0">
+                            Al eliminar este pago, el monto de ${{ payment.amount }} se restará del total pagado de la factura 
+                            {{ payment.invoice.invoice_number }} y se actualizará su estado de pago.
+                        </p>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:supplier_account_status' pk=supplier.pk %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Eliminar Pago
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+</style>
+{% endblock %} 

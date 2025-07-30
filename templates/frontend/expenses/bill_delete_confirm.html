@@ -1,0 +1,113 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Eliminar Boleta - {{ fixed_expense.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-trash text-danger"></i>
+            </div>
+            <div>
+                <h1 class="mb-0">Eliminar Boleta</h1>
+                <div class="title-subtitle">
+                    Confirmar eliminación de boleta para {{ fixed_expense.name }}
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Estado de Cuenta
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmar Eliminación
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ¡Atención!
+                        </h6>
+                        <p class="mb-0">Estás a punto de eliminar una boleta. Esta acción no se puede deshacer.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Detalles de la Boleta:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Gasto Fijo:</strong> {{ fixed_expense.name }}</li>
+                                <li><strong>Período:</strong> {{ bill.get_month_display }} {{ bill.year }}</li>
+                                <li><strong>Monto:</strong> ${{ bill.amount }}</li>
+                                <li><strong>Fecha de Vencimiento:</strong> {{ bill.due_date|date:"d/m/Y" }}</li>
+                                <li><strong>Estado:</strong> 
+                                    {% if bill.is_paid %}
+                                        <span class="badge bg-success">Pagado</span>
+                                    {% elif bill.payment_status == 'partial' %}
+                                        <span class="badge bg-warning">Pago Parcial</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pendiente</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            {% if has_payments %}
+                                <div class="alert alert-warning">
+                                    <h6 class="alert-heading">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Pagos Asociados
+                                    </h6>
+                                    <p class="mb-2">Esta boleta tiene <strong>{{ payments_count }} pago(s)</strong> asociado(s).</p>
+                                    <p class="mb-0"><strong>¡Importante!</strong> Al eliminar la boleta, también se eliminarán todos los pagos relacionados.</p>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <h6 class="alert-heading">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Sin Pagos
+                                    </h6>
+                                    <p class="mb-0">Esta boleta no tiene pagos asociados.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:expense_bill_edit' expense_pk=fixed_expense.pk bill_pk=bill.pk %}" 
+                               class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Eliminar Definitivamente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card.border-danger {
+    border-width: 2px;
+}
+.alert-heading {
+    font-weight: 600;
+}
+</style>
+{% endblock %} 

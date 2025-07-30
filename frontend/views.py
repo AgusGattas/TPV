@@ -10,12 +10,18 @@ from datetime import datetime, timedelta
 import json
 from django.contrib.auth import authenticate, login, logout
 from decimal import Decimal
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.models import User
+from django.db import transaction
 
 from products.models import Product, ProductImage
 from sales.models import Sale, SaleItem
 from stock.models import Stock, StockMovement
 from cashbox.models import CashBox, CashMovement
 from users.models import User
+from suppliers.models import Supplier, SupplierInvoice, SupplierPayment
+from expenses.models import ExpenseCategory, FixedExpense, MonthlyExpense, VariableExpense, ExpensePayment
 
 
 @login_required
@@ -1318,3 +1324,1500 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'Has cerrado sesión exitosamente')
     return redirect('frontend:login') 
+
+# =============================================================================
+# VISTAS DE PROVEEDORES
+# =============================================================================
+
+@login_required
+def suppliers_list(request):
+    """Lista de proveedores"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    suppliers = Supplier.objects.filter(is_active=True).order_by('name')
+    
+    # Filtro por búsqueda
+    search = request.GET.get('search')
+    if search:
+        suppliers = suppliers.filter(
+            Q(name__icontains=search) | 
+            Q(cuit__icontains=search) |
+            Q(email__icontains=search)
+        )
+    
+    # Filtro por estado de pago
+    payment_status = request.GET.get('payment_status')
+    if payment_status == 'up_to_date':
+        suppliers = [supplier for supplier in suppliers if supplier.is_up_to_date]
+    elif payment_status == 'overdue':
+        suppliers = [supplier for supplier in suppliers if not supplier.is_up_to_date]
+    
+    # Paginación
+    paginator = Paginator(suppliers, 20)
+    page_number = request.GET.get('page')
+    suppliers_page = paginator.get_page(page_number)
+    
+    context = {
+        'suppliers': suppliers_page,
+        'filters': {
+            'search': search,
+            'payment_status': payment_status,
+        }
+    }
+    
+    return render(request, 'frontend/suppliers/list.html', context)
+
+
+@login_required
+def supplier_detail(request, pk):
+    """Detalle de un proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=pk, is_active=True)
+    invoices = supplier.invoices.all().order_by('-invoice_date')
+    
+    # Estadísticas del proveedor
+    total_invoices = invoices.count()
+    total_amount = invoices.aggregate(total=Sum('total_amount'))['total'] or 0
+    paid_amount = invoices.filter(is_paid=True).aggregate(total=Sum('total_amount'))['total'] or 0
+    pending_amount = total_amount - paid_amount
+    
+    context = {
+        'supplier': supplier,
+        'invoices': invoices,
+        'total_invoices': total_invoices,
+        'total_amount': total_amount,
+        'paid_amount': paid_amount,
+        'pending_amount': pending_amount,
+    }
+    
+    return render(request, 'frontend/suppliers/detail.html', context)
+
+
+@login_required
+def supplier_invoices_list(request, supplier_pk):
+    """Lista de facturas de un proveedor específico"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk)
+    invoices = SupplierInvoice.objects.filter(supplier=supplier).order_by('-invoice_date')
+    
+    # Filtros
+    payment_status = request.GET.get('payment_status')
+    if payment_status:
+        if payment_status == 'overdue':
+            invoices = invoices.filter(is_overdue=True)
+        else:
+            invoices = invoices.filter(payment_status=payment_status)
+    
+    # Filtro por fechas
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if date_from:
+        invoices = invoices.filter(invoice_date__gte=date_from)
+    if date_to:
+        invoices = invoices.filter(invoice_date__lte=date_to)
+    
+    # Paginación
+    paginator = Paginator(invoices, 20)
+    page_number = request.GET.get('page')
+    invoices_page = paginator.get_page(page_number)
+    
+    context = {
+        'supplier': supplier,
+        'invoices': invoices_page,
+        'filters': {
+            'payment_status': payment_status,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    
+    return render(request, 'frontend/suppliers/supplier_invoices_list.html', context)
+
+
+# =============================================================================
+# VISTAS DE GASTOS
+# =============================================================================
+
+
+
+
+@login_required
+def expenses_fixed_list(request):
+    """Lista de gastos fijos"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    expenses = FixedExpense.objects.filter(is_active=True).select_related('category').order_by('name')
+    
+    # Filtro por búsqueda
+    search = request.GET.get('search')
+    if search:
+        expenses = expenses.filter(name__icontains=search)
+    
+    # Filtro por estado de pago
+    payment_status = request.GET.get('payment_status')
+    if payment_status == 'up_to_date':
+        expenses = [expense for expense in expenses if expense.is_up_to_date]
+    elif payment_status == 'overdue':
+        expenses = [expense for expense in expenses if not expense.is_up_to_date]
+    
+    # Paginación
+    paginator = Paginator(expenses, 20)
+    page_number = request.GET.get('page')
+    expenses_page = paginator.get_page(page_number)
+    
+    context = {
+        'expenses': expenses_page,
+        'filters': {
+            'search': search,
+            'payment_status': payment_status,
+        }
+    }
+    
+    return render(request, 'frontend/expenses/fixed_list.html', context)
+
+
+
+
+
+
+
+
+# =============================================================================
+# VISTAS DE ESTADÍSTICAS MEJORADAS
+# =============================================================================
+
+@login_required
+def financial_dashboard(request):
+    """Dashboard financiero con estadísticas económicas y financieras"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    # Filtros de fecha
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+    
+    # ===== ESTADÍSTICAS ECONÓMICAS (como las actuales) =====
+    
+    # Ventas por período
+    sales_period = Sale.objects.filter(
+        created_at__date__range=[date_from, date_to],
+        is_active=True
+    )
+    
+    total_sales_count = sales_period.count()
+    total_sales_revenue = sales_period.aggregate(total=Sum('total_final'))['total'] or 0
+    
+    # Costo de mercadería vendida (CMV)
+    sale_items = SaleItem.objects.filter(
+        sale__created_at__date__range=[date_from, date_to],
+        sale__is_active=True
+    ).select_related('product')
+    
+    total_cmv = 0
+    for item in sale_items:
+        product_cost = item.product.cost_price * item.quantity
+        total_cmv += float(product_cost)
+    
+    # Utilidad bruta
+    total_utility = float(total_sales_revenue) - total_cmv
+    
+    # ===== ESTADÍSTICAS FINANCIERAS (nuevas) =====
+    
+    # Ingresos reales (efectivo que realmente entró)
+    real_income = sales_period.aggregate(total=Sum('total_final'))['total'] or 0
+    
+    # Egresos reales (dinero que realmente salió)
+    
+    # Pagos a proveedores
+    supplier_payments = SupplierPayment.objects.filter(
+        payment_date__range=[date_from, date_to]
+    )
+    total_supplier_payments = supplier_payments.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Pagos de gastos fijos
+    expense_payments = ExpensePayment.objects.filter(
+        payment_date__range=[date_from, date_to]
+    )
+    total_expense_payments = expense_payments.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Gastos variables pagados
+    variable_expenses = VariableExpense.objects.filter(
+        expense_date__range=[date_from, date_to],
+        payment_status='paid'
+    )
+    total_variable_expenses = variable_expenses.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Total egresos reales
+    total_real_expenses = total_supplier_payments + total_expense_payments + total_variable_expenses
+    
+    # Saldo financiero real
+    real_balance = real_income - total_real_expenses
+    
+    # ===== ESTADÍSTICAS ADICIONALES =====
+    
+    # Facturas pendientes de pago
+    pending_invoices = SupplierInvoice.objects.filter(
+        is_paid=False
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Gastos fijos pendientes
+    pending_expenses = MonthlyExpense.objects.filter(
+        is_paid=False
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Gastos vencidos
+    overdue_expenses = MonthlyExpense.objects.filter(
+        due_date__lt=timezone.now().date(),
+        is_paid=False
+    ).count()
+    
+    overdue_invoices = SupplierInvoice.objects.filter(
+        due_date__lt=timezone.now().date(),
+        is_paid=False
+    ).count()
+    
+    # Convertir a Decimal para evitar errores de tipos en el cálculo del porcentaje
+    from decimal import Decimal
+    total_cmv_decimal = Decimal(str(total_cmv))
+    total_sales_revenue_decimal = Decimal(str(total_sales_revenue))
+    
+    context = {
+        # Filtros
+        'date_from': date_from,
+        'date_to': date_to,
+        
+        # Económicas
+        'total_sales_count': total_sales_count,
+        'total_sales_revenue': total_sales_revenue,
+        'total_cmv': total_cmv,
+        'total_utility': total_utility,
+        'cmv_percentage': (total_cmv_decimal / total_sales_revenue_decimal * 100) if total_sales_revenue_decimal > 0 else 0,
+        
+        # Financieras
+        'real_income': real_income,
+        'total_supplier_payments': total_supplier_payments,
+        'total_expense_payments': total_expense_payments,
+        'total_variable_expenses': total_variable_expenses,
+        'total_real_expenses': total_real_expenses,
+        'real_balance': real_balance,
+        
+        # Pendientes
+        'pending_invoices': pending_invoices,
+        'pending_expenses': pending_expenses,
+        'overdue_expenses': overdue_expenses,
+        'overdue_invoices': overdue_invoices,
+    }
+    
+    return render(request, 'frontend/financial_dashboard.html', context) 
+
+# =============================================================================
+# VISTAS DE COSTOS FIJOS
+# =============================================================================
+
+@login_required
+def expense_fixed_detail(request, pk):
+    """Detalle de un costo fijo con sus boletas"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    expense = get_object_or_404(FixedExpense, pk=pk, is_active=True)
+    bills = expense.monthly_expenses.all().order_by('-year', '-month')
+    
+    # Estadísticas del costo fijo
+    total_bills = bills.count()
+    total_amount = bills.aggregate(total=Sum('amount'))['total'] or 0
+    paid_amount = bills.filter(is_paid=True).aggregate(total=Sum('amount'))['total'] or 0
+    pending_amount = total_amount - paid_amount
+    
+    context = {
+        'expense': expense,
+        'bills': bills,
+        'total_bills': total_bills,
+        'total_amount': total_amount,
+        'paid_amount': paid_amount,
+        'pending_amount': pending_amount,
+    }
+    
+    return render(request, 'frontend/expenses/fixed_detail.html', context)
+
+
+@login_required
+def expense_bills_list(request, expense_pk):
+    """Lista de boletas de un costo fijo específico"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    bills = expense.monthly_expenses.all().order_by('-year', '-month')
+    
+    # Filtros
+    payment_status = request.GET.get('payment_status')
+    if payment_status:
+        if payment_status == 'overdue':
+            bills = bills.filter(is_overdue=True)
+        else:
+            bills = bills.filter(payment_status=payment_status)
+    
+    # Filtro por año y mes
+    year = request.GET.get('year')
+    if year:
+        bills = bills.filter(year=year)
+    
+    month = request.GET.get('month')
+    if month:
+        bills = bills.filter(month=month)
+    
+    # Filtro por fechas
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if date_from:
+        bills = bills.filter(due_date__gte=date_from)
+    if date_to:
+        bills = bills.filter(due_date__lte=date_to)
+    
+    # Paginación
+    paginator = Paginator(bills, 20)
+    page_number = request.GET.get('page')
+    bills_page = paginator.get_page(page_number)
+    
+    context = {
+        'expense': expense,
+        'bills': bills_page,
+        'filters': {
+            'payment_status': payment_status,
+            'year': year,
+            'month': month,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    
+    return render(request, 'frontend/expenses/expense_bills_list.html', context)
+
+
+@login_required
+def expense_fixed_create(request):
+    """Crear nuevo costo fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    # Obtener categorías para el formulario
+    categories = ExpenseCategory.objects.filter(is_active=True).order_by('name')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            name = request.POST.get('name')
+            category_id = request.POST.get('category')
+            amount = request.POST.get('amount')
+            frequency = request.POST.get('frequency')
+            due_day = request.POST.get('due_day')
+            description = request.POST.get('description', '')
+            
+            # Validaciones básicas
+            if not name or not category_id or not amount or not frequency or not due_day:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/expenses/create.html', {'categories': categories})
+            
+            # Validar que la categoría existe
+            try:
+                category = ExpenseCategory.objects.get(id=category_id, is_active=True)
+            except ExpenseCategory.DoesNotExist:
+                messages.error(request, 'La categoría seleccionada no es válida')
+                return render(request, 'frontend/expenses/create.html', {'categories': categories})
+            
+            # Crear el costo fijo
+            expense = FixedExpense.objects.create(
+                name=name,
+                category=category,
+                amount=amount,
+                frequency=frequency,
+                due_day=due_day,
+                description=description,
+                is_active=True
+            )
+            
+            messages.success(request, f'Costo fijo "{expense.name}" creado exitosamente')
+            return redirect('frontend:expense_fixed_detail', pk=expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear el costo fijo: {str(e)}')
+            return render(request, 'frontend/expenses/create.html', {'categories': categories})
+    
+    context = {
+        'categories': categories,
+    }
+    
+    return render(request, 'frontend/expenses/create.html', context)
+
+
+@login_required
+def expense_bill_create(request, expense_pk):
+    """Crear nueva boleta para un costo fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            year = request.POST.get('year')
+            month = request.POST.get('month')
+            amount = request.POST.get('amount')
+            due_date = request.POST.get('due_date')
+            description = request.POST.get('description', '')
+            
+            # Validaciones básicas
+            if not year or not month or not amount or not due_date:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
+            
+            # Validar que no exista ya una boleta para ese mes/año
+            existing_bill = MonthlyExpense.objects.filter(
+                fixed_expense=expense,
+                year=year,
+                month=month
+            ).first()
+            
+            # Función para obtener el nombre del mes
+            def get_month_name(month_num):
+                months = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                }
+                return months.get(month_num, '')
+            
+            if existing_bill:
+                month_name = get_month_name(int(month))
+                messages.error(request, f'Ya existe una boleta para {month_name} {year}')
+                return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
+            
+            # Crear la boleta
+            bill = MonthlyExpense.objects.create(
+                fixed_expense=expense,
+                year=year,
+                month=month,
+                amount=amount,
+                due_date=due_date,
+                notes=description,
+                payment_status='pending'
+            )
+            
+            month_name = get_month_name(int(month))
+            messages.success(request, f'Boleta creada exitosamente para {month_name} {year}')
+            return redirect('frontend:expense_bills_list', expense_pk=expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear la boleta: {str(e)}')
+            return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
+    
+    context = {
+        'expense': expense,
+    }
+    
+    return render(request, 'frontend/expenses/bill_create.html', context)
+
+
+@login_required
+def expense_bill_pay(request, bill_id):
+    """Marcar una boleta como pagada"""
+    if not request.user.is_admin:
+        return JsonResponse({
+            'success': False,
+            'message': 'No tienes permisos para realizar esta acción'
+        })
+    
+    try:
+        bill = get_object_or_404(MonthlyExpense, pk=bill_id)
+        
+        # Verificar que la boleta no esté ya pagada
+        if bill.payment_status == 'paid':
+            return JsonResponse({
+                'success': False,
+                'message': 'Esta boleta ya está marcada como pagada'
+            })
+        
+        # Calcular el monto restante por pagar
+        remaining_amount = bill.remaining_amount
+        
+        # Crear un registro de pago por el monto restante
+        ExpensePayment.objects.create(
+            monthly_expense=bill,
+            amount=remaining_amount,
+            payment_date=timezone.now().date(),
+            payment_method='transfer',  # Por defecto transferencia
+            reference=f'Pago automático - {bill.fixed_expense.name}',
+            notes=f'Pago automático de boleta {bill.get_month_display()} {bill.year}'
+        )
+        
+        # Actualizar el estado de la boleta
+        bill.update_payment_status()
+        bill.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Boleta marcada como pagada exitosamente. Se registró un pago de ${remaining_amount}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error al procesar el pago: {str(e)}'
+        })
+
+
+@login_required
+def supplier_create(request):
+    """Crear nuevo proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            name = request.POST.get('name')
+            cuit = request.POST.get('cuit', '')
+            phone = request.POST.get('phone', '')
+            email = request.POST.get('email', '')
+            address = request.POST.get('address', '')
+            notes = request.POST.get('notes', '')
+            
+            # Validaciones básicas
+            if not name:
+                messages.error(request, 'El nombre del proveedor es obligatorio')
+                return render(request, 'frontend/suppliers/create.html')
+            
+            # Crear el proveedor
+            supplier = Supplier.objects.create(
+                name=name,
+                cuit=cuit,
+                phone=phone,
+                email=email,
+                address=address,
+                notes=notes,
+                is_active=True
+            )
+            
+            messages.success(request, f'Proveedor "{supplier.name}" creado exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear el proveedor: {str(e)}')
+            return render(request, 'frontend/suppliers/create.html')
+    
+    return render(request, 'frontend/suppliers/create.html')
+
+
+@login_required
+def supplier_edit(request, pk):
+    """Editar proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            name = request.POST.get('name')
+            cuit = request.POST.get('cuit', '')
+            phone = request.POST.get('phone', '')
+            email = request.POST.get('email', '')
+            address = request.POST.get('address', '')
+            notes = request.POST.get('notes', '')
+            
+            # Validaciones básicas
+            if not name:
+                messages.error(request, 'El nombre del proveedor es obligatorio')
+                return render(request, 'frontend/suppliers/edit.html', {'supplier': supplier})
+            
+            # Actualizar el proveedor
+            supplier.name = name
+            supplier.cuit = cuit
+            supplier.phone = phone
+            supplier.email = email
+            supplier.address = address
+            supplier.notes = notes
+            supplier.save()
+            
+            messages.success(request, f'Proveedor "{supplier.name}" actualizado exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el proveedor: {str(e)}')
+            return render(request, 'frontend/suppliers/edit.html', {'supplier': supplier})
+    
+    return render(request, 'frontend/suppliers/edit.html', {'supplier': supplier})
+
+
+@login_required
+def supplier_account_status(request, pk):
+    """Estado de cuenta de un proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=pk, is_active=True)
+    
+    # Obtener todas las facturas del proveedor con sus pagos
+    invoices = SupplierInvoice.objects.filter(supplier=supplier).order_by('invoice_date')
+    
+    # Calcular totales
+    total_purchases = invoices.aggregate(total=Sum('total_amount'))['total'] or 0
+    total_payments = sum(
+        payment.amount 
+        for invoice in invoices 
+        for payment in invoice.payments.all()
+    )
+    balance = total_purchases - total_payments
+    
+    # Preparar datos para el template
+    invoices_data = []
+    for invoice in invoices:
+        payments = invoice.payments.all().order_by('payment_date')
+        invoices_data.append({
+            'invoice': invoice,
+            'payments': payments,
+            'paid_amount': invoice.paid_amount,
+            'remaining_amount': invoice.remaining_amount,
+            'payment_status': invoice.payment_status
+        })
+    
+    context = {
+        'supplier': supplier,
+        'invoices_data': invoices_data,
+        'total_purchases': total_purchases,
+        'total_payments': total_payments,
+        'balance': balance,
+        'issue_date': timezone.now().date(),
+    }
+    return render(request, 'frontend/suppliers/account_status.html', context)
+
+
+@login_required
+def supplier_invoice_create(request, supplier_pk):
+    """Crear nueva factura para un proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            invoice_number = request.POST.get('invoice_number')
+            invoice_date = request.POST.get('invoice_date')
+            due_date = request.POST.get('due_date')
+            total_amount = request.POST.get('total_amount')
+            description = request.POST.get('description', '')
+            
+            # Validaciones básicas
+            if not invoice_number or not invoice_date or not due_date or not total_amount:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/suppliers/invoice_create.html', {'supplier': supplier})
+            
+            # Verificar que no exista una factura con el mismo número
+            existing_invoice = SupplierInvoice.objects.filter(
+                supplier=supplier,
+                invoice_number=invoice_number
+            ).first()
+            
+            if existing_invoice:
+                messages.error(request, f'Ya existe una factura con el número {invoice_number}')
+                return render(request, 'frontend/suppliers/invoice_create.html', {'supplier': supplier})
+            
+            # Crear la factura
+            invoice = SupplierInvoice.objects.create(
+                supplier=supplier,
+                invoice_number=invoice_number,
+                invoice_date=invoice_date,
+                due_date=due_date,
+                total_amount=total_amount,
+                description=description,
+                payment_status='pending'
+            )
+            
+            messages.success(request, f'Factura {invoice.invoice_number} creada exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear la factura: {str(e)}')
+            return render(request, 'frontend/suppliers/invoice_create.html', {'supplier': supplier})
+    
+    return render(request, 'frontend/suppliers/invoice_create.html', {'supplier': supplier})
+
+
+@login_required
+def supplier_payment_create(request, supplier_pk):
+    """Crear nuevo pago para un proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    
+    # Obtener facturas con monto pendiente (no solo las marcadas como no pagadas)
+    pending_invoices = SupplierInvoice.objects.filter(
+        supplier=supplier
+    ).exclude(
+        is_paid=True  # Excluir solo las completamente pagadas
+    ).order_by('due_date')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            invoice_id = request.POST.get('invoice')
+            amount = request.POST.get('amount')
+            payment_date = request.POST.get('payment_date')
+            payment_method = request.POST.get('payment_method')
+            reference = request.POST.get('reference', '')
+            
+            # Validaciones básicas
+            if not invoice_id or not amount or not payment_date or not payment_method:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/suppliers/payment_create.html', {
+                    'supplier': supplier,
+                    'pending_invoices': pending_invoices
+                })
+            
+            # Obtener la factura
+            invoice = get_object_or_404(SupplierInvoice, pk=invoice_id, supplier=supplier)
+            
+            # Validar que la factura no esté completamente pagada
+            if invoice.is_paid:
+                messages.error(request, f'La factura {invoice.invoice_number} ya está completamente pagada')
+                return render(request, 'frontend/suppliers/payment_create.html', {
+                    'supplier': supplier,
+                    'pending_invoices': pending_invoices
+                })
+            
+            # Validar que el monto del pago no exceda el monto pendiente
+            if float(amount) > float(invoice.remaining_amount):
+                messages.error(request, f'El monto del pago (${amount}) no puede exceder el monto pendiente (${invoice.remaining_amount})')
+                return render(request, 'frontend/suppliers/payment_create.html', {
+                    'supplier': supplier,
+                    'pending_invoices': pending_invoices
+                })
+            
+            # Validar que el monto sea mayor a cero
+            if float(amount) <= 0:
+                messages.error(request, 'El monto del pago debe ser mayor a cero')
+                return render(request, 'frontend/suppliers/payment_create.html', {
+                    'supplier': supplier,
+                    'pending_invoices': pending_invoices
+                })
+            
+            # Crear el pago
+            payment = SupplierPayment.objects.create(
+                invoice=invoice,
+                amount=amount,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference=reference
+            )
+            
+            # Actualizar el estado de la factura
+            invoice.update_payment_status()
+            invoice.save()
+            
+            messages.success(request, f'Pago de ${amount} registrado exitosamente para la factura {invoice.invoice_number}')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al registrar el pago: {str(e)}')
+            return render(request, 'frontend/suppliers/payment_create.html', {
+                'supplier': supplier,
+                'pending_invoices': pending_invoices
+            })
+    
+    return render(request, 'frontend/suppliers/payment_create.html', {
+        'supplier': supplier,
+        'pending_invoices': pending_invoices
+    })
+
+
+@login_required
+def supplier_delete(request, pk):
+    """Eliminar proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            # Verificar si tiene facturas asociadas
+            invoices_count = supplier.invoices.count()
+            if invoices_count > 0:
+                messages.error(request, f'No se puede eliminar el proveedor porque tiene {invoices_count} factura(s) asociada(s)')
+                return redirect('frontend:suppliers_list')
+            
+            # Eliminar el proveedor (soft delete)
+            supplier.is_active = False
+            supplier.save()
+            
+            messages.success(request, f'Proveedor "{supplier.name}" eliminado exitosamente')
+            return redirect('frontend:suppliers_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el proveedor: {str(e)}')
+            return redirect('frontend:suppliers_list')
+    
+    # Si es GET, mostrar confirmación
+    return render(request, 'frontend/suppliers/delete_confirm.html', {'supplier': supplier})
+
+
+@login_required
+def supplier_invoice_edit(request, supplier_pk, invoice_pk):
+    """Editar factura de proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    invoice = get_object_or_404(SupplierInvoice, pk=invoice_pk, supplier=supplier)
+    
+    # Convertir el monto a string para el template
+    invoice.total_amount_str = str(invoice.total_amount)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            invoice_number = request.POST.get('invoice_number')
+            invoice_date = request.POST.get('invoice_date')
+            due_date = request.POST.get('due_date')
+            total_amount = request.POST.get('total_amount')
+            description = request.POST.get('description', '')
+            
+            # Validaciones básicas
+            if not invoice_number or not invoice_date or not due_date or not total_amount:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/suppliers/invoice_edit.html', {
+                    'supplier': supplier,
+                    'invoice': invoice
+                })
+            
+            # Verificar que no exista otra factura con el mismo número
+            existing_invoice = SupplierInvoice.objects.filter(
+                supplier=supplier,
+                invoice_number=invoice_number
+            ).exclude(pk=invoice_pk).first()
+            
+            if existing_invoice:
+                messages.error(request, f'Ya existe una factura con el número {invoice_number}')
+                return render(request, 'frontend/suppliers/invoice_edit.html', {
+                    'supplier': supplier,
+                    'invoice': invoice
+                })
+            
+            # Actualizar la factura
+            invoice.invoice_number = invoice_number
+            invoice.invoice_date = invoice_date
+            invoice.due_date = due_date
+            invoice.total_amount = total_amount
+            invoice.description = description
+            invoice.save()
+            
+            messages.success(request, f'Factura {invoice.invoice_number} actualizada exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la factura: {str(e)}')
+            return render(request, 'frontend/suppliers/invoice_edit.html', {
+                'supplier': supplier,
+                'invoice': invoice
+            })
+    
+    return render(request, 'frontend/suppliers/invoice_edit.html', {
+        'supplier': supplier,
+        'invoice': invoice
+    })
+
+
+@login_required
+def supplier_payment_edit(request, supplier_pk, payment_pk):
+    """Editar pago de proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    payment = get_object_or_404(SupplierPayment, pk=payment_pk, invoice__supplier=supplier)
+    
+    # Convertir el monto a string para el template
+    payment.amount_str = str(payment.amount)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            invoice_id = request.POST.get('invoice')
+            amount = request.POST.get('amount')
+            payment_date = request.POST.get('payment_date')
+            payment_method = request.POST.get('payment_method')
+            reference = request.POST.get('reference', '')
+            
+            # Validaciones básicas
+            if not invoice_id or not amount or not payment_date or not payment_method:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/suppliers/payment_edit.html', {
+                    'supplier': supplier,
+                    'payment': payment
+                })
+            
+            # Obtener la factura
+            invoice = get_object_or_404(SupplierInvoice, pk=invoice_id, supplier=supplier)
+            
+            # Actualizar el pago
+            payment.invoice = invoice
+            payment.amount = amount
+            payment.payment_date = payment_date
+            payment.payment_method = payment_method
+            payment.reference = reference
+            payment.save()
+            
+            # Actualizar el estado de la factura
+            invoice.update_payment_status()
+            invoice.save()
+            
+            messages.success(request, f'Pago actualizado exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el pago: {str(e)}')
+            return render(request, 'frontend/suppliers/payment_edit.html', {
+                'supplier': supplier,
+                'payment': payment
+            })
+    
+    # Obtener facturas para el select
+    invoices = SupplierInvoice.objects.filter(supplier=supplier).order_by('invoice_date')
+    
+    return render(request, 'frontend/suppliers/payment_edit.html', {
+        'supplier': supplier,
+        'payment': payment,
+        'invoices': invoices
+    })
+
+
+@login_required
+def supplier_invoice_delete(request, supplier_pk, invoice_pk):
+    """Eliminar factura de proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    invoice = get_object_or_404(SupplierInvoice, pk=invoice_pk, supplier=supplier)
+    
+    if request.method == 'POST':
+        try:
+            # Verificar si tiene pagos asociados
+            payments_count = invoice.payments.count()
+            if payments_count > 0:
+                messages.error(request, f'No se puede eliminar la factura porque tiene {payments_count} pago(s) asociado(s)')
+                return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+            # Eliminar la factura
+            invoice.delete()
+            
+            messages.success(request, f'Factura {invoice.invoice_number} eliminada exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar la factura: {str(e)}')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+    
+    # Si es GET, mostrar confirmación
+    return render(request, 'frontend/suppliers/invoice_delete_confirm.html', {
+        'supplier': supplier,
+        'invoice': invoice
+    })
+
+
+@login_required
+def supplier_payment_delete(request, supplier_pk, payment_pk):
+    """Eliminar pago de proveedor"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    supplier = get_object_or_404(Supplier, pk=supplier_pk, is_active=True)
+    payment = get_object_or_404(SupplierPayment, pk=payment_pk, invoice__supplier=supplier)
+    
+    if request.method == 'POST':
+        try:
+            # Guardar referencia a la factura para actualizar su estado después
+            invoice = payment.invoice
+            
+            # Eliminar el pago
+            payment.delete()
+            
+            # Actualizar el estado de la factura
+            invoice.update_payment_status()
+            invoice.save()
+            
+            messages.success(request, f'Pago eliminado exitosamente')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el pago: {str(e)}')
+            return redirect('frontend:supplier_account_status', pk=supplier.pk)
+    
+    # Si es GET, mostrar confirmación
+    return render(request, 'frontend/suppliers/payment_delete_confirm.html', {
+        'supplier': supplier,
+        'payment': payment
+    })
+
+
+@login_required
+def fixed_expense_account_status(request, pk):
+    """Estado de cuenta de un gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=pk, is_active=True)
+    
+    # Obtener parámetros de filtrado
+    from datetime import datetime
+    current_date = datetime.now()
+    selected_year = request.GET.get('year', current_date.year)
+    selected_month = request.GET.get('month', '')  # Cambiado de current_date.month a ''
+    
+    try:
+        selected_year = int(selected_year)
+        selected_month = int(selected_month) if selected_month else None
+    except (ValueError, TypeError):
+        selected_year = current_date.year
+        selected_month = None
+    
+    # Obtener todas las boletas mensuales del gasto fijo
+    monthly_expenses = MonthlyExpense.objects.filter(
+        fixed_expense=fixed_expense
+    ).order_by('-year', '-month')
+    
+    # Filtrar por año y mes si se especifica
+    if selected_year and selected_month:
+        monthly_expenses = monthly_expenses.filter(year=selected_year, month=selected_month)
+    elif selected_year:
+        monthly_expenses = monthly_expenses.filter(year=selected_year)
+    # Si no se especifica mes, mostrar todos los meses del año seleccionado
+    
+    # Calcular totales
+    total_amount = sum(expense.amount for expense in monthly_expenses)
+    total_paid = sum(expense.paid_amount for expense in monthly_expenses)
+    balance = total_amount - total_paid
+    
+    # Preparar datos para el template
+    expenses_data = []
+    for expense in monthly_expenses:
+        payments = expense.payments.all().order_by('payment_date')
+        expenses_data.append({
+            'expense': expense,
+            'payments': payments,
+            'paid_amount': expense.paid_amount,
+            'remaining_amount': expense.remaining_amount,
+            'payment_status': expense.payment_status
+        })
+    
+    # Generar años disponibles (desde 2020 hasta el año actual + 1)
+    years = list(range(2020, current_date.year + 2))
+    months = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+    
+    context = {
+        'fixed_expense': fixed_expense,
+        'expenses_data': expenses_data,
+        'total_amount': total_amount,
+        'total_paid': total_paid,
+        'balance': balance,
+        'selected_year': selected_year,
+        'selected_month': selected_month,
+        'years': years,
+        'months': months,
+        'current_date': current_date,
+        'issue_date': timezone.now().date(),
+    }
+    return render(request, 'frontend/expenses/account_status.html', context)
+
+
+@login_required
+def expense_payment_create(request, expense_pk):
+    """Crear nuevo pago para un gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    
+    # Definir variables de fecha actual fuera del bloque POST
+    current_date = datetime.now()
+    current_year = current_date.year
+    current_month = current_date.month
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            amount = request.POST.get('amount')
+            payment_date = request.POST.get('payment_date')
+            payment_method = request.POST.get('payment_method')
+            reference = request.POST.get('reference', '')
+            
+            # Validaciones básicas
+            if not amount or not payment_date or not payment_method:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/expenses/payment_create.html', {
+                    'fixed_expense': fixed_expense,
+                    'pending_info': {
+                        'current_month': current_month,
+                        'current_year': current_year,
+                        'next_pending_expense': MonthlyExpense.objects.filter(
+                            fixed_expense=fixed_expense,
+                            is_paid=False
+                        ).order_by('year', 'month').first()
+                    }
+                })
+            
+            # Validar que el monto sea mayor a cero
+            if float(amount) <= 0:
+                messages.error(request, 'El monto del pago debe ser mayor a cero')
+                return render(request, 'frontend/expenses/payment_create.html', {
+                    'fixed_expense': fixed_expense,
+                    'pending_info': {
+                        'current_month': current_month,
+                        'current_year': current_year,
+                        'next_pending_expense': MonthlyExpense.objects.filter(
+                            fixed_expense=fixed_expense,
+                            is_paid=False
+                        ).order_by('year', 'month').first()
+                    }
+                })
+            
+            # Buscar el período más apropiado para asignar el pago
+            # Priorizar el período actual o el más próximo con monto pendiente
+            current_date = datetime.now()
+            current_year = current_date.year
+            current_month = current_date.month
+            
+            # Buscar primero el período actual
+            expense = MonthlyExpense.objects.filter(
+                fixed_expense=fixed_expense,
+                year=current_year,
+                month=current_month,
+                is_paid=False
+            ).first()
+            
+            # Si no hay período actual con pendiente, buscar el más próximo
+            if not expense:
+                expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False
+                ).order_by('year', 'month').first()
+            
+            # Si no hay ningún período con pendiente, mostrar error
+            if not expense:
+                messages.error(request, 'No hay períodos pendientes de pago para este gasto fijo')
+                return render(request, 'frontend/expenses/payment_create.html', {
+                    'fixed_expense': fixed_expense,
+                    'pending_info': {
+                        'current_month': current_month,
+                        'current_year': current_year,
+                        'next_pending_expense': MonthlyExpense.objects.filter(
+                            fixed_expense=fixed_expense,
+                            is_paid=False
+                        ).order_by('year', 'month').first()
+                    }
+                })
+            
+            # Verificar que el período tenga monto pendiente
+            if expense.remaining_amount <= 0:
+                messages.error(request, f'El período {expense.get_month_display()} {expense.year} ya está completamente pagado')
+                return render(request, 'frontend/expenses/payment_create.html', {
+                    'fixed_expense': fixed_expense,
+                    'pending_info': {
+                        'current_month': current_month,
+                        'current_year': current_year,
+                        'next_pending_expense': MonthlyExpense.objects.filter(
+                            fixed_expense=fixed_expense,
+                            is_paid=False
+                        ).order_by('year', 'month').first()
+                    }
+                })
+            
+            # Validar que el monto del pago no exceda el monto pendiente
+            if float(amount) > float(expense.remaining_amount):
+                messages.error(request, f'El monto del pago (${amount}) no puede exceder el monto pendiente (${expense.remaining_amount}) del período {expense.get_month_display()} {expense.year}')
+                return render(request, 'frontend/expenses/payment_create.html', {
+                    'fixed_expense': fixed_expense,
+                    'pending_info': {
+                        'current_month': current_month,
+                        'current_year': current_year,
+                        'next_pending_expense': MonthlyExpense.objects.filter(
+                            fixed_expense=fixed_expense,
+                            is_paid=False
+                        ).order_by('year', 'month').first()
+                    }
+                })
+            
+            # Crear el pago
+            payment = ExpensePayment.objects.create(
+                monthly_expense=expense,
+                amount=amount,
+                payment_date=payment_date,
+                payment_method=payment_method,
+                reference=reference
+            )
+            
+            # Actualizar el estado de la boleta
+            expense.update_payment_status()
+            expense.save()
+            
+            messages.success(request, f'Pago de ${amount} registrado exitosamente para {expense.get_month_display()} {expense.year}')
+            return redirect('frontend:fixed_expense_account_status', pk=fixed_expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al registrar el pago: {str(e)}')
+            return render(request, 'frontend/expenses/payment_create.html', {
+                'fixed_expense': fixed_expense,
+                'pending_info': {
+                    'current_month': current_month,
+                    'current_year': current_year,
+                    'next_pending_expense': MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                }
+            })
+    
+    return render(request, 'frontend/expenses/payment_create.html', {
+        'fixed_expense': fixed_expense,
+        'pending_info': {
+            'current_month': current_month,
+            'current_year': current_year,
+            'next_pending_expense': MonthlyExpense.objects.filter(
+                fixed_expense=fixed_expense,
+                is_paid=False
+            ).order_by('year', 'month').first()
+        }
+    })
+
+
+@login_required
+def expense_payment_edit(request, expense_pk, payment_pk):
+    """Editar pago de gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    payment = get_object_or_404(ExpensePayment, pk=payment_pk, monthly_expense__fixed_expense=fixed_expense)
+    
+    # Convertir el monto a string para el template
+    payment.amount_str = str(payment.amount)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            expense_id = request.POST.get('expense')
+            amount = request.POST.get('amount')
+            payment_date = request.POST.get('payment_date')
+            payment_method = request.POST.get('payment_method')
+            reference = request.POST.get('reference', '')
+            
+            # Validaciones básicas
+            if not expense_id or not amount or not payment_date or not payment_method:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/expenses/payment_edit.html', {
+                    'fixed_expense': fixed_expense,
+                    'payment': payment
+                })
+            
+            # Obtener la boleta
+            expense = get_object_or_404(MonthlyExpense, pk=expense_id, fixed_expense=fixed_expense)
+            
+            # Actualizar el pago
+            payment.monthly_expense = expense
+            payment.amount = amount
+            payment.payment_date = payment_date
+            payment.payment_method = payment_method
+            payment.reference = reference
+            payment.save()
+            
+            # Actualizar el estado de la boleta
+            expense.update_payment_status()
+            expense.save()
+            
+            messages.success(request, f'Pago actualizado exitosamente')
+            return redirect('frontend:fixed_expense_account_status', pk=fixed_expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el pago: {str(e)}')
+            return render(request, 'frontend/expenses/payment_edit.html', {
+                'fixed_expense': fixed_expense,
+                'payment': payment
+            })
+    
+    # Obtener boletas para el select
+    expenses = MonthlyExpense.objects.filter(fixed_expense=fixed_expense).order_by('-year', '-month')
+    
+    return render(request, 'frontend/expenses/payment_edit.html', {
+        'fixed_expense': fixed_expense,
+        'payment': payment,
+        'expenses': expenses
+    })
+
+
+@login_required
+def expense_bill_edit(request, expense_pk, bill_pk):
+    """Editar boleta de gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    bill = get_object_or_404(MonthlyExpense, pk=bill_pk, fixed_expense=fixed_expense)
+    
+    # Convertir el monto a string para el template
+    bill.amount_str = str(bill.amount)
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            year = request.POST.get('year')
+            month = request.POST.get('month')
+            amount = request.POST.get('amount')
+            due_date = request.POST.get('due_date')
+            notes = request.POST.get('notes', '')
+            
+            # Validaciones básicas
+            if not year or not month or not amount or not due_date:
+                messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                return render(request, 'frontend/expenses/bill_edit.html', {
+                    'fixed_expense': fixed_expense,
+                    'bill': bill
+                })
+            
+            # Verificar que no exista otra boleta para el mismo mes/año
+            existing_bill = MonthlyExpense.objects.filter(
+                fixed_expense=fixed_expense,
+                year=year,
+                month=month
+            ).exclude(pk=bill.pk).first()
+            
+            if existing_bill:
+                messages.error(request, f'Ya existe una boleta para {existing_bill.get_month_display()} {existing_bill.year}')
+                return render(request, 'frontend/expenses/bill_edit.html', {
+                    'fixed_expense': fixed_expense,
+                    'bill': bill
+                })
+            
+            # Actualizar la boleta
+            bill.year = year
+            bill.month = month
+            bill.amount = amount
+            bill.due_date = due_date
+            bill.notes = notes
+            bill.save()
+            
+            # Actualizar el estado de pago
+            bill.update_payment_status()
+            bill.save()
+            
+            messages.success(request, f'Boleta actualizada exitosamente')
+            return redirect('frontend:fixed_expense_account_status', pk=fixed_expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la boleta: {str(e)}')
+            return render(request, 'frontend/expenses/bill_edit.html', {
+                'fixed_expense': fixed_expense,
+                'bill': bill
+            })
+    
+    # Generar años disponibles
+    current_year = datetime.now().year
+    years = list(range(2020, current_year + 2))
+    months = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+    
+    return render(request, 'frontend/expenses/bill_edit.html', {
+        'fixed_expense': fixed_expense,
+        'bill': bill,
+        'years': years,
+        'months': months
+    })
+
+
+@login_required
+def expense_fixed_detail_redirect(request, pk):
+    """Redirigir al estado de cuenta"""
+    return redirect('frontend:fixed_expense_account_status', pk=pk)
+
+
+@login_required
+def expense_bills_list_redirect(request, expense_pk):
+    """Redirigir al estado de cuenta"""
+    return redirect('frontend:fixed_expense_account_status', pk=expense_pk)
+
+
+@login_required
+def expense_bill_delete(request, expense_pk, bill_pk):
+    """Eliminar una boleta de gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para acceder a esta sección')
+        return redirect('dashboard')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=expense_pk, is_active=True)
+    bill = get_object_or_404(MonthlyExpense, pk=bill_pk, fixed_expense=fixed_expense)
+    
+    if request.method == 'POST':
+        try:
+            # Verificar si tiene pagos asociados
+            if bill.payments.exists():
+                # Eliminar pagos asociados primero
+                bill.payments.all().delete()
+            
+            # Eliminar la boleta
+            bill.delete()
+            
+            messages.success(request, f'Boleta de {bill.get_month_display()} {bill.year} eliminada exitosamente')
+            return redirect('frontend:fixed_expense_account_status', pk=fixed_expense.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar la boleta: {str(e)}')
+            return redirect('frontend:expense_bill_edit', expense_pk=fixed_expense.pk, bill_pk=bill.pk)
+    
+    # Si no es POST, mostrar confirmación
+    context = {
+        'fixed_expense': fixed_expense,
+        'bill': bill,
+        'has_payments': bill.payments.exists(),
+        'payments_count': bill.payments.count(),
+    }
+    return render(request, 'frontend/expenses/bill_delete_confirm.html', context)

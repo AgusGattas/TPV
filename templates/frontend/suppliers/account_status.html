@@ -1,0 +1,407 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Estado de Cuenta - {{ supplier.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header Mejorado -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Estado de Cuenta</h1>
+                <div class="supplier-name">
+                    <i class="fas fa-user me-2"></i>
+                    <span class="supplier-name-text">{{ supplier.name|title }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:suppliers_list' %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Proveedores
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del Proveedor y Balance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>ESTADO DE CUENTA
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Proveedor:</strong><br>
+                            {{ supplier.name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong><br>
+                            {{ supplier.email|default:"-" }}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <strong>Teléfono:</strong><br>
+                            {{ supplier.phone|default:"-" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>CUIT:</strong><br>
+                            {{ supplier.cuit|default:"-" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-balance-scale me-2"></i>Balance
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Balance Total:</strong><br>
+                            <span class="h4 {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                ${{ balance|floatformat:2 }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Fecha de Emisión:</strong><br>
+                            {{ issue_date|date:"d/m/Y" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Acción Mejorados -->
+    <div class="row mb-4">
+        <div class="col-md-6 text-center">
+            <a href="{% url 'frontend:supplier_invoice_create' supplier_pk=supplier.pk %}" class="btn btn-primary btn-lg action-btn">
+                <i class="fas fa-plus me-2"></i>Nueva Compra
+            </a>
+        </div>
+        <div class="col-md-6 text-center">
+            <a href="{% url 'frontend:supplier_payment_create' supplier_pk=supplier.pk %}" class="btn btn-success btn-lg action-btn">
+                <i class="fas fa-plus me-2"></i>Registrar Pago
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de Transacciones -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-list me-2"></i>Facturas y Pagos
+            </h5>
+            
+            {% if invoices_data %}
+                <div class="accordion" id="invoicesAccordion">
+                    {% for invoice_data in invoices_data %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ invoice_data.invoice.id }}">
+                            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ invoice_data.invoice.id }}" 
+                                    aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                    aria-controls="collapse{{ invoice_data.invoice.id }}">
+                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                    <div>
+                                        <strong>Factura #{{ invoice_data.invoice.invoice_number }}</strong>
+                                        <small class="text-muted ms-2">{{ invoice_data.invoice.invoice_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">${{ invoice_data.invoice.total_amount|floatformat:2 }}</div>
+                                        <small class="{% if invoice_data.remaining_amount > 0 %}text-warning{% else %}text-success{% endif %}">
+                                            {% if invoice_data.remaining_amount > 0 %}
+                                                Pendiente: ${{ invoice_data.remaining_amount|floatformat:2 }}
+                                            {% else %}
+                                                Pagada
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ invoice_data.invoice.id }}" 
+                             class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ invoice_data.invoice.id }}" 
+                             data-bs-parent="#invoicesAccordion">
+                            <div class="accordion-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <h6>Detalles de la Factura</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Número:</strong> {{ invoice_data.invoice.invoice_number }}</li>
+                                            <li><strong>Fecha:</strong> {{ invoice_data.invoice.invoice_date|date:"d/m/Y" }}</li>
+                                            <li><strong>Vencimiento:</strong> {{ invoice_data.invoice.due_date|date:"d/m/Y" }}</li>
+                                            <li><strong>Monto Total:</strong> ${{ invoice_data.invoice.total_amount|floatformat:2 }}</li>
+                                            {% if invoice_data.invoice.description %}
+                                                <li><strong>Descripción:</strong> {{ invoice_data.invoice.description }}</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <div class="mb-2">
+                                            <a href="{% url 'frontend:supplier_invoice_edit' supplier_pk=supplier.pk invoice_pk=invoice_data.invoice.pk %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit me-1"></i>Editar Factura
+                                            </a>
+                                        </div>
+                                        {% if invoice_data.remaining_amount > 0 %}
+                                            <div class="mb-2">
+                                                <a href="{% url 'frontend:supplier_payment_create' supplier_pk=supplier.pk %}" 
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-plus me-1"></i>Agregar Pago
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6>Pagos Realizados</h6>
+                                {% if invoice_data.payments %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Monto</th>
+                                                    <th>Método</th>
+                                                    <th>Referencia</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for payment in invoice_data.payments %}
+                                                <tr>
+                                                    <td>{{ payment.payment_date|date:"d/m/Y" }}</td>
+                                                    <td>${{ payment.amount|floatformat:2 }}</td>
+                                                    <td>
+                                                        {% if payment.payment_method == 'cash' %}Efectivo
+                                                        {% elif payment.payment_method == 'transfer' %}Transferencia
+                                                        {% elif payment.payment_method == 'check' %}Cheque
+                                                        {% elif payment.payment_method == 'card' %}Tarjeta
+                                                        {% else %}Otro
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ payment.reference|default:"-" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'frontend:supplier_payment_edit' supplier_pk=supplier.pk payment_pk=payment.pk %}" 
+                                                           class="btn btn-sm btn-outline-secondary">
+                                                            <i class="fas fa-edit me-1"></i>Editar
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-credit-card fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No se han registrado pagos para esta factura.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay facturas</h4>
+                    <p class="text-muted">Aún no se han registrado facturas para este proveedor.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.title-icon {
+    font-size: 2.5rem;
+    margin-right: 1.5rem;
+    opacity: 0.9;
+}
+
+.title-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-content h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.supplier-name {
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+    opacity: 0.95;
+    font-weight: 500;
+}
+
+.supplier-name-text {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.title-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.title-actions .btn {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.title-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.accordion-item {
+    border: none;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.accordion-button {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: none;
+    padding: 1.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.accordion-button:not(.collapsed) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border: none;
+}
+
+.accordion-body {
+    padding: 1.5rem;
+    background: #f8f9fa;
+}
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.action-btn {
+    padding: 1rem 2rem;
+    font-weight: 600;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary.action-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+}
+
+.btn-success.action-btn {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    border: none;
+}
+</style>
+
+<script>
+// Activar tooltips de Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %} 

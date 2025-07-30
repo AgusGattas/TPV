@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Factura - {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-main-title">
+                <div class="title-container">
+                    <div class="title-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h1 class="mb-0">Eliminar Factura</h1>
+                        <div class="title-subtitle">
+                            Confirmar eliminación de factura del proveedor {{ supplier.name }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ¿Estás seguro de que quieres eliminar esta factura?
+                        </h5>
+                        <p class="mb-0">
+                            Esta acción no se puede deshacer. Se eliminará permanentemente la factura y todos sus datos asociados.
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2"></i>Información de la Factura</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Número:</strong> {{ invoice.invoice_number }}</li>
+                                <li><strong>Fecha:</strong> {{ invoice.invoice_date|date:"d/m/Y" }}</li>
+                                <li><strong>Vencimiento:</strong> {{ invoice.due_date|date:"d/m/Y" }}</li>
+                                <li><strong>Monto:</strong> ${{ invoice.total_amount }}</li>
+                                {% if invoice.description %}
+                                    <li><strong>Descripción:</strong> {{ invoice.description }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Advertencias</h6>
+                            <ul class="list-unstyled text-danger">
+                                {% if invoice.payments.count > 0 %}
+                                    <li><i class="fas fa-times-circle me-1"></i>Esta factura tiene {{ invoice.payments.count }} pago(s) asociado(s)</li>
+                                    <li><i class="fas fa-times-circle me-1"></i>No se puede eliminar hasta que se eliminen todos los pagos</li>
+                                {% else %}
+                                    <li><i class="fas fa-check-circle me-1"></i>No tiene pagos asociados</li>
+                                    <li><i class="fas fa-check-circle me-1"></i>Se puede eliminar sin problemas</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:supplier_account_status' pk=supplier.pk %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            {% if invoice.payments.count == 0 %}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash me-2"></i>Eliminar Factura
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-danger" disabled>
+                                    <i class="fas fa-trash me-2"></i>No se puede eliminar
+                                </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,213 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Facturas de Proveedores - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-file-invoice title-icon"></i>
+            <h1>Facturas de Proveedores</h1>
+        </div>
+        <div class="title-subtitle">
+            Gestión de facturas y pagos a proveedores
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="supplier" class="form-label">Proveedor</label>
+                    <select class="form-select" id="supplier" name="supplier">
+                        <option value="">Todos los proveedores</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if filters.supplier_id == supplier.id|stringformat:"s" %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="payment_status" class="form-label">Estado</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="">Todos</option>
+                        <option value="pending" {% if filters.payment_status == 'pending' %}selected{% endif %}>Pendiente</option>
+                        <option value="partial" {% if filters.payment_status == 'partial' %}selected{% endif %}>Pago Parcial</option>
+                        <option value="paid" {% if filters.payment_status == 'paid' %}selected{% endif %}>Pagado</option>
+                        <option value="overdue" {% if filters.payment_status == 'overdue' %}selected{% endif %}>Vencido</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ filters.date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ filters.date_to }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                    <a href="{% url 'frontend:supplier_invoices_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de facturas -->
+    {% if invoices %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>N° Factura</th>
+                        <th>Fecha</th>
+                        <th>Vencimiento</th>
+                        <th>Monto</th>
+                        <th>Pagado</th>
+                        <th>Pendiente</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>
+                            <strong>{{ invoice.supplier.name }}</strong>
+                        </td>
+                        <td>{{ invoice.invoice_number }}</td>
+                        <td>{{ invoice.invoice_date|date:"d/m/Y" }}</td>
+                        <td>
+                            <span class="{% if invoice.is_overdue %}text-danger{% endif %}">
+                                {{ invoice.due_date|date:"d/m/Y" }}
+                            </span>
+                        </td>
+                        <td>${{ invoice.total_amount|floatformat:2 }}</td>
+                        <td>${{ invoice.paid_amount|floatformat:2 }}</td>
+                        <td>${{ invoice.remaining_amount|floatformat:2 }}</td>
+                        <td>
+                            {% if invoice.payment_status == 'paid' %}
+                                <span class="badge bg-success">Pagado</span>
+                            {% elif invoice.payment_status == 'partial' %}
+                                <span class="badge bg-warning">Pago Parcial</span>
+                            {% elif invoice.payment_status == 'overdue' %}
+                                <span class="badge bg-danger">Vencido</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-eye me-2"></i>Ver Detalles
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-plus me-2"></i>Registrar Pago
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#">
+                                        <i class="fas fa-edit me-2"></i>Editar
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        {% if invoices.has_other_pages %}
+        <nav aria-label="Paginación de facturas">
+            <ul class="pagination justify-content-center">
+                {% if invoices.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ invoices.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in invoices.paginator.page_range %}
+                    {% if invoices.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > invoices.number|add:'-3' and num < invoices.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if invoices.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ invoices.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No se encontraron facturas</h4>
+            <p class="text-muted">
+                {% if filters.supplier_id or filters.payment_status or filters.date_from or filters.date_to %}
+                    No hay facturas que coincidan con los filtros aplicados
+                {% else %}
+                    Aún no hay facturas registradas
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Enlaces rápidos -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-link me-2"></i>
+                Acciones Rápidas
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:suppliers_list' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-truck me-2"></i>Proveedores
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:financial_dashboard' %}" class="btn btn-outline-info w-100 mb-2">
+                        <i class="fas fa-chart-line me-2"></i>Dashboard Financiero
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-danger w-100 mb-2">
+                        <i class="fas fa-money-bill-wave me-2"></i>Gastos Fijos
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'frontend:dashboard' %}" class="btn btn-outline-secondary w-100 mb-2">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,140 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Editar Pago - {{ fixed_expense.name }} - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div>
+                <h1 class="mb-0">Editar Pago</h1>
+                <div class="title-subtitle">
+                    Modificar pago para {{ fixed_expense.name }}
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Estado de Cuenta
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="expense" class="form-label">Boleta *</label>
+                                    <select class="form-select" id="expense" name="expense" required>
+                                        <option value="">Seleccionar boleta...</option>
+                                        {% for expense in expenses %}
+                                            <option value="{{ expense.id }}" 
+                                                    {% if expense.id == payment.monthly_expense.id %}selected{% endif %}>
+                                                {{ expense.get_month_display }} {{ expense.year }} 
+                                                (Total: ${{ expense.amount }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">Monto del Pago *</label>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           value="{{ payment.amount_str }}" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_date" class="form-label">Fecha de Pago *</label>
+                                    <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                           value="{{ payment.payment_date|date:'Y-m-d' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_method" class="form-label">Método de Pago *</label>
+                                    <select class="form-select" id="payment_method" name="payment_method" required>
+                                        <option value="">Seleccionar método...</option>
+                                        <option value="cash" {% if payment.payment_method == 'cash' %}selected{% endif %}>Efectivo</option>
+                                        <option value="transfer" {% if payment.payment_method == 'transfer' %}selected{% endif %}>Transferencia</option>
+                                        <option value="check" {% if payment.payment_method == 'check' %}selected{% endif %}>Cheque</option>
+                                        <option value="card" {% if payment.payment_method == 'card' %}selected{% endif %}>Tarjeta</option>
+                                        <option value="automatic" {% if payment.payment_method == 'automatic' %}selected{% endif %}>Débito Automático</option>
+                                        <option value="other" {% if payment.payment_method == 'other' %}selected{% endif %}>Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reference" class="form-label">Referencia</label>
+                            <input type="text" class="form-control" id="reference" name="reference" 
+                                   value="{{ payment.reference|default:'' }}" 
+                                   placeholder="Número de comprobante, cheque, etc.">
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:fixed_expense_account_status' pk=fixed_expense.pk %}" 
+                               class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Actualizar Pago
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-main-title {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.title-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+</style>
+{% endblock %} 

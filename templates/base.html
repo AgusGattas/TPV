@@ -287,6 +287,21 @@
                                 <i class="fas fa-chart-bar"></i>Reportes
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'financial_dashboard' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'frontend:financial_dashboard' %}">
+                                <i class="fas fa-chart-line"></i>Dashboard Financiero
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'suppliers' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'frontend:suppliers_list' %}">
+                                <i class="fas fa-truck"></i>Proveedores
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'expenses_fixed' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'frontend:expenses_fixed_list' %}">
+                                <i class="fas fa-money-bill-wave"></i>Costos Fijos
+                            </a>
+                        </li>
                         {% endif %}
                     </ul>
                 </div>

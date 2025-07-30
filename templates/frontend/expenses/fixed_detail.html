@@ -1,0 +1,200 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}{{ expense.name }} - Costos Fijos - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <i class="fas fa-money-bill-wave title-icon"></i>
+            <h1>{{ expense.name }}</h1>
+        </div>
+        <div class="title-subtitle">
+            Detalle del costo fijo y sus boletas
+        </div>
+    </div>
+
+    <!-- Información del costo fijo -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Información del Costo Fijo
+                    </h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Categoría:</strong><br>
+                            <span class="badge" style="background-color: {{ expense.category.color }}; color: white;">
+                                {{ expense.category_name }}
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Frecuencia:</strong><br>
+                            {{ expense.get_frequency_display }}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Monto Total:</strong><br>
+                            ${{ expense.amount|floatformat:0 }}
+                        </div>
+                        <div class="col-6">
+                            <strong>Monto Mensual:</strong><br>
+                            ${{ expense.monthly_amount|floatformat:0 }}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Día de Vencimiento:</strong><br>
+                            {{ expense.due_day }}
+                        </div>
+                        <div class="col-6">
+                            <strong>Estado:</strong><br>
+                            <span class="badge {% if expense.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if expense.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% if expense.description %}
+                    <hr>
+                    <div>
+                        <strong>Descripción:</strong><br>
+                        {{ expense.description }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Estadísticas
+                    </h5>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-muted small">Total Boletas</div>
+                            <div class="h4 mb-0">{{ total_bills }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">Total Pagado</div>
+                            <div class="h4 mb-0 text-success">${{ paid_amount|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">Pendiente</div>
+                            <div class="h4 mb-0 text-warning">${{ pending_amount|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'frontend:expense_bills_list' expense_pk=expense.pk %}" class="btn btn-primary">
+                            <i class="fas fa-list me-2"></i>Ver Todas las Boletas
+                        </a>
+                        <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver a Costos Fijos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de boletas recientes -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>
+                Boletas Recientes
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if bills %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Período</th>
+                                <th>Fecha de Vencimiento</th>
+                                <th>Monto</th>
+                                <th>Pagado</th>
+                                <th>Pendiente</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bill in bills|slice:":10" %}
+                            <tr>
+                                <td>
+                                    <strong>{{ bill.get_month_display }} {{ bill.year }}</strong>
+                                </td>
+                                <td>
+                                    <span class="{% if bill.is_overdue %}text-danger{% endif %}">
+                                        {{ bill.due_date|date:"d/m/Y" }}
+                                    </span>
+                                </td>
+                                <td>${{ bill.amount|floatformat:2 }}</td>
+                                <td>${{ bill.paid_amount|floatformat:2 }}</td>
+                                <td>${{ bill.remaining_amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if bill.payment_status == 'paid' %}
+                                        <span class="badge bg-success">Pagado</span>
+                                    {% elif bill.payment_status == 'partial' %}
+                                        <span class="badge bg-warning">Pago Parcial</span>
+                                    {% elif bill.payment_status == 'overdue' %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#">
+                                                <i class="fas fa-eye me-2"></i>Ver Detalles
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#">
+                                                <i class="fas fa-edit me-2"></i>Editar
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#">
+                                                <i class="fas fa-check me-2"></i>Marcar como Pagado
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if bills.count > 10 %}
+                <div class="text-center mt-3">
+                    <a href="{% url 'frontend:expense_bills_list' expense_pk=expense.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>Ver Todas las Boletas ({{ bills.count }})
+                    </a>
+                </div>
+                {% endif %}
+                
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No hay boletas registradas</h5>
+                    <p class="text-muted">Este costo fijo aún no tiene boletas mensuales registradas.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
