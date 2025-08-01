@@ -26,13 +26,54 @@
         </div>
     </div>
 
+    <!-- Resumen Principal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-primary mb-3">
+                        <i class="fas fa-chart-pie me-2"></i>Resumen del Gasto
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <div class="summary-value text-primary">${{ fixed_expense.amount|floatformat:0 }}</div>
+                                <div class="summary-label">Monto Mensual</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <div class="summary-value text-success">${{ total_paid|floatformat:0 }}</div>
+                                <div class="summary-label">Total Pagado</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <div class="summary-value {% if balance > 0 %}text-warning{% else %}text-success{% endif %}">
+                                    ${{ balance|floatformat:0 }}
+                                </div>
+                                <div class="summary-label">Pendiente</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <div class="summary-value text-info">{{ expenses_data|length }}</div>
+                                <div class="summary-label">Boletas</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filtros de Fecha -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-filter me-2"></i>Filtros de Fecha
+                        <i class="fas fa-filter me-2"></i>Filtrar por Fecha
                     </h5>
                     <form method="get" class="row g-3">
                         <div class="col-md-4">
@@ -70,87 +111,7 @@
         </div>
     </div>
 
-    <!-- Información del Gasto Fijo y Balance -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="fas fa-info-circle me-2"></i>INFORMACIÓN DEL GASTO
-                    </h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Nombre:</strong><br>
-                            {{ fixed_expense.name }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Categoría:</strong><br>
-                            {{ fixed_expense.category.name }}
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-6">
-                            <strong>Monto Mensual:</strong><br>
-                            ${{ fixed_expense.amount|floatformat:2 }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Frecuencia:</strong><br>
-                            {% if fixed_expense.frequency == 'monthly' %}Mensual
-                            {% elif fixed_expense.frequency == 'quarterly' %}Trimestral
-                            {% elif fixed_expense.frequency == 'biannual' %}Semestral
-                            {% else %}Anual
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% if fixed_expense.description %}
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            <strong>Descripción:</strong><br>
-                            {{ fixed_expense.description }}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="fas fa-balance-scale me-2"></i>Balance del Período
-                    </h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Total Período:</strong><br>
-                            <span class="h4 text-primary">
-                                ${{ total_amount|floatformat:2 }}
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Fecha de Emisión:</strong><br>
-                            {{ issue_date|date:"d/m/Y" }}
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-6">
-                            <strong>Pagado:</strong><br>
-                            <span class="h5 text-success">
-                                ${{ total_paid|floatformat:2 }}
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Pendiente:</strong><br>
-                            <span class="h5 {% if balance > 0 %}text-warning{% else %}text-success{% endif %}">
-                                ${{ balance|floatformat:2 }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Botones de Acción Mejorados -->
+    <!-- Botón de Acción -->
     <div class="row mb-4">
         <div class="col-12 text-center">
             <a href="{% url 'frontend:expense_bill_create' expense_pk=fixed_expense.pk %}" class="btn btn-primary btn-lg action-btn">
@@ -294,86 +255,126 @@
 </div>
 
 <style>
+/* Estilos generales */
 .page-main-title {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 2rem;
     border-radius: 15px;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
 .title-container {
     display: flex;
     align-items: center;
-    margin-bottom: 1rem;
 }
 
 .title-icon {
-    font-size: 2.5rem;
-    margin-right: 1.5rem;
-    opacity: 0.9;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
 }
 
-.title-content {
-    display: flex;
-    flex-direction: column;
+.title-icon i {
+    font-size: 1.5rem;
+    color: white;
 }
 
 .title-content h1 {
-    font-size: 2.2rem;
+    margin: 0;
     font-weight: 700;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 2rem;
 }
 
 .supplier-name {
-    display: flex;
-    align-items: center;
-    font-size: 1.2rem;
-    opacity: 0.95;
-    font-weight: 500;
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
 }
 
 .supplier-name-text {
     font-weight: 600;
-    text-transform: capitalize;
 }
 
-.title-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+/* Estilos para el resumen principal */
+.summary-item {
+    padding: 1rem;
+    text-align: center;
 }
 
-.title-actions .btn {
-    border-radius: 25px;
-    padding: 0.5rem 1.5rem;
+.summary-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #6c757d;
     font-weight: 500;
-    transition: all 0.3s ease;
 }
 
-.title-actions .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+/* Estilos para la información detallada */
+.info-grid {
+    display: grid;
+    gap: 1rem;
 }
 
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+}
+
+.info-value {
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Estilos para las tarjetas */
 .card {
     border: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+.card-title {
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 1.5rem;
+}
+
+/* Estilos para botones */
 .btn {
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: 10px;
+    font-weight: 600;
     transition: all 0.3s ease;
+    padding: 0.75rem 1.5rem;
 }
 
 .btn:hover {

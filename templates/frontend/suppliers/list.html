@@ -5,21 +5,22 @@
 
 {% block frontend_content %}
 <div class="container-fluid">
-    <!-- Header -->
+    <!-- Header Mejorado -->
     <div class="page-main-title">
         <div class="title-container">
-            <i class="fas fa-truck title-icon"></i>
-            <h1>Listado de Proveedores</h1>
-        </div>
-        <div class="title-subtitle">
-            Gestión de proveedores y estado de cuentas
+            <div class="title-icon">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Proveedores</h1>
+                <div class="title-subtitle">
+                    Gestión de proveedores y estado de cuentas
+                </div>
+            </div>
         </div>
         <div class="title-actions">
-            <a href="{% url 'frontend:dashboard' %}" class="btn btn-outline-secondary me-2">
-                <i class="fas fa-arrow-left me-2"></i>Volver
-            </a>
-            <a href="{% url 'frontend:supplier_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>+ Nuevo Proveedor
+            <a href="{% url 'frontend:supplier_create' %}" class="btn btn-primary btn-lg action-btn">
+                <i class="fas fa-plus me-2"></i>Nuevo Proveedor
             </a>
         </div>
     </div>
@@ -194,68 +195,179 @@
 </div>
 
 <style>
+/* Estilos mejorados para el header */
 .page-main-title {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     color: white;
-    padding: 2rem;
-    border-radius: 10px;
+    padding: 2.5rem;
+    border-radius: 20px;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.page-main-title::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    pointer-events: none;
 }
 
 .title-container {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 2;
 }
 
 .title-icon {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.title-icon i {
     font-size: 2rem;
-    margin-right: 1rem;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.title-content h1 {
+    margin: 0;
+    font-weight: 800;
+    font-size: 2.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
 }
 
 .title-subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    opacity: 0.95;
+    margin-top: 0.5rem;
+    font-weight: 400;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .title-actions {
     display: flex;
-    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+    position: relative;
+    z-index: 2;
 }
 
-.card {
+.action-btn {
+    padding: 1.2rem 2.5rem;
+    font-weight: 700;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 220px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
 }
 
-.table th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 600;
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
 }
 
-.table td {
-    vertical-align: middle;
+.action-btn:hover::before {
+    left: 100%;
 }
 
-.btn {
-    border-radius: 8px;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.3s ease;
+.action-btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
 }
 
-.btn-primary {
+.btn-primary.action-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
 }
 
+.btn-primary.action-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* Estilos para las tarjetas */
+.card {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: none;
+    font-weight: 700;
+    color: #495057;
+    padding: 1.2rem 1rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr:hover {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+.badge {
+    border-radius: 25px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    padding: 0.75rem 1.5rem;
+}
+
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .btn-sm {
@@ -271,6 +383,34 @@
 .pagination .page-item.active .page-link {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-color: #667eea;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-main-title {
+        padding: 2rem 1.5rem;
+        text-align: center;
+    }
+    
+    .title-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .title-icon {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .title-actions {
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+    
+    .action-btn {
+        min-width: 200px;
+        padding: 1rem 2rem;
+    }
 }
 </style>
 {% endblock %} 
