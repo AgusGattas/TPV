@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -14,6 +14,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.db import transaction
+import os
+from django.conf import settings
+import pandas as pd
 
 from products.models import Product, ProductImage
 from sales.models import Sale, SaleItem
@@ -113,6 +116,20 @@ def products_list(request):
             Q(description__icontains=search)
         )
     
+    # Filtro por stock
+    stock_filter = request.GET.get('stock_filter', '')
+    if stock_filter == 'low':
+        # Productos con stock bajo (menor o igual al mínimo)
+        products = products.filter(
+            stock_info__current_quantity__lte=F('min_stock'),
+            stock_info__current_quantity__gt=0
+        )
+    elif stock_filter == 'out':
+        # Productos sin stock
+        products = products.filter(
+            stock_info__current_quantity=0
+        )
+    
     # Ordenamiento
     order_by = request.GET.get('order_by', '-created_at')
     products = products.order_by(order_by)
@@ -120,7 +137,7 @@ def products_list(request):
     context = {
         'products': products,
         'search': search,
-        'stock_filter': '',
+        'stock_filter': stock_filter,
         'order_by': order_by,
     }
     
@@ -414,6 +431,7 @@ def sale_detail(request, pk):
 @login_required
 def sale_create(request):
     """Crear nueva venta"""
+    from decimal import Decimal
     
     # Verificar que haya una caja abierta
     current_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
@@ -431,7 +449,7 @@ def sale_create(request):
                 cashbox=current_cashbox,
                 payment_method=data['payment_method'],
                 notes=data.get('notes', ''),
-                sale_discount_percentage=data.get('sale_discount_percentage', 0)
+                sale_discount_percentage=Decimal(str(data.get('sale_discount_percentage', 0)))
             )
             
             # Si se envió un total_final específico, usarlo en lugar del calculado
@@ -454,13 +472,17 @@ def sale_create(request):
                         f"Disponible: {stock.current_quantity}, Solicitado: {item_data['quantity']}"
                     )
                 
+                # Convertir valores a Decimal para evitar errores de tipos
+                unit_price = Decimal(str(item_data.get('unit_price', product.price)))
+                discount_percentage = Decimal(str(item_data.get('discount_percentage', 0)))
+                
                 # Crear el item de venta
                 sale_item = SaleItem.objects.create(
                     sale=sale,
                     product=product,
                     quantity=item_data['quantity'],
-                    unit_price=item_data.get('unit_price', product.price),
-                    discount_percentage=item_data.get('discount_percentage', 0)
+                    unit_price=unit_price,
+                    discount_percentage=discount_percentage
                 )
                 
                 # Reducir stock
@@ -471,7 +493,7 @@ def sale_create(request):
             
             # Si se especificó un total_final, actualizarlo
             if total_final_override is not None:
-                sale.total_final = total_final_override
+                sale.total_final = Decimal(str(total_final_override))
                 sale.save(update_fields=['total_final'])
             
             return JsonResponse({
@@ -1131,7 +1153,8 @@ def reports(request):
     total_cmv = 0
     for item in sale_items:
         # Usar el costo del producto multiplicado por la cantidad vendida
-        product_cost = item.product.cost_price * item.quantity
+        from decimal import Decimal
+        product_cost = item.product.cost_price * Decimal(str(item.quantity))
         total_cmv += float(product_cost)
     
     # Calcular utilidad bruta
@@ -1526,7 +1549,8 @@ def financial_dashboard(request):
     
     total_cmv = 0
     for item in sale_items:
-        product_cost = item.product.cost_price * item.quantity
+        from decimal import Decimal
+        product_cost = item.product.cost_price * Decimal(str(item.quantity))
         total_cmv += float(product_cost)
     
     # Utilidad bruta
@@ -2821,3 +2845,147 @@ def expense_bill_delete(request, expense_pk, bill_pk):
         'payments_count': bill.payments.count(),
     }
     return render(request, 'frontend/expenses/bill_delete_confirm.html', context)
+
+
+def import_products_from_excel(request):
+    """Vista para importar productos desde Excel"""
+    if request.method == 'POST':
+        try:
+            # Verificar si se subió un archivo
+            if 'excel_file' not in request.FILES:
+                messages.error(request, 'Por favor selecciona un archivo Excel.')
+                return redirect('frontend:products_list')
+            
+            excel_file = request.FILES['excel_file']
+            
+            # Verificar extensión del archivo
+            if not excel_file.name.endswith(('.xlsx', '.xls')):
+                messages.error(request, 'Por favor sube un archivo Excel (.xlsx o .xls)')
+                return redirect('frontend:products_list')
+            
+            # Leer el archivo Excel
+            df = pd.read_excel(excel_file)
+            
+            # Verificar columnas requeridas
+            required_columns = ['Articulo', 'Costo', 'Precio Venta', 'Codigo']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                messages.error(request, f'Faltan las siguientes columnas en el Excel: {", ".join(missing_columns)}')
+                return redirect('frontend:products_list')
+            
+            # Contadores para el reporte
+            created_count = 0
+            updated_count = 0
+            errors = []
+            
+            # Procesar cada fila
+            for index, row in df.iterrows():
+                try:
+                    # Obtener datos de la fila
+                    name = str(row['Articulo']).strip()
+                    
+                    # Validación mínima: solo necesitamos el nombre
+                    if not name or name == 'nan':
+                        errors.append(f'Fila {index + 2}: Nombre del producto vacío')
+                        continue
+                    
+                    # Obtener otros datos con valores por defecto
+                    try:
+                        cost_price = Decimal(str(row['Costo'])) if pd.notna(row['Costo']) else Decimal('0')
+                    except:
+                        cost_price = Decimal('0')
+                    
+                    try:
+                        sale_price = Decimal(str(row['Precio Venta'])) if pd.notna(row['Precio Venta']) else Decimal('0')
+                    except:
+                        sale_price = Decimal('0')
+                    
+                    try:
+                        barcode = str(row['Codigo']).strip() if pd.notna(row['Codigo']) else ''
+                    except:
+                        barcode = ''
+                    
+                    # Si no hay código de barras, generar uno automáticamente
+                    if not barcode:
+                        # Crear producto sin código de barras (se generará automáticamente)
+                        product = Product.objects.create(
+                            name=name,
+                            cost_price=cost_price,
+                            price=sale_price,
+                            is_active=True
+                        )
+                        created_count += 1
+                        print(f"✅ Creado: {name} (sin código de barras)")
+                    else:
+                        # Buscar producto existente por código de barras
+                        product, created = Product.objects.get_or_create(
+                            barcode=barcode,
+                            defaults={
+                                'name': name,
+                                'cost_price': cost_price,
+                                'price': sale_price,
+                                'is_active': True
+                            }
+                        )
+                        
+                        if created:
+                            created_count += 1
+                            print(f"✅ Creado: {name}")
+                        else:
+                            # Actualizar producto existente
+                            product.name = name
+                            product.cost_price = cost_price
+                            product.price = sale_price
+                            product.is_active = True
+                            product.save()
+                            updated_count += 1
+                            print(f"🔄 Actualizado: {name}")
+                        
+                except Exception as e:
+                    errors.append(f'Fila {index + 2}: Error - {str(e)}')
+                    continue
+            
+            # Mostrar resultados
+            if created_count > 0 or updated_count > 0:
+                success_msg = f'Importación completada: {created_count} productos creados, {updated_count} productos actualizados.'
+                if errors:
+                    success_msg += f' Errores: {len(errors)}'
+                messages.success(request, success_msg)
+            
+            if errors:
+                for error in errors[:10]:  # Mostrar solo los primeros 10 errores
+                    messages.warning(request, error)
+                if len(errors) > 10:
+                    messages.warning(request, f'... y {len(errors) - 10} errores más.')
+            
+            return redirect('frontend:products_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            return redirect('frontend:products_list')
+    
+    # GET request - mostrar formulario de importación
+    return render(request, 'frontend/products/import_products.html')
+
+
+def product_delete(request, pk):
+    """Vista para eliminar un producto"""
+    product = get_object_or_404(Product, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            # Soft delete - marcar como inactivo en lugar de eliminar físicamente
+            product.is_active = False
+            product.save()
+            messages.success(request, f'Producto "{product.name}" eliminado exitosamente.')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el producto: {str(e)}')
+        
+        return redirect('frontend:products_list')
+    
+    # GET request - mostrar confirmación
+    context = {
+        'product': product
+    }
+    return render(request, 'frontend/products/delete_confirm.html', context)

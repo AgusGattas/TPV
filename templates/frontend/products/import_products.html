@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importar Productos - TodoBrilla{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Mejorado -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-file-excel"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Importar Productos</h1>
+                <div class="title-subtitle">
+                    Cargar productos desde archivo Excel
+                </div>
+            </div>
+        </div>
+        <div class="title-actions">
+            <a href="{% url 'frontend:products_list' %}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Productos
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Instrucciones -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Instrucciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Formato del Excel:</h6>
+                            <p>Tu archivo Excel debe tener las siguientes columnas:</p>
+                            <ul class="list-unstyled">
+                                <li><strong>Articulo:</strong> Nombre del producto <span class="text-danger">(OBLIGATORIO)</span></li>
+                                <li><strong>Costo:</strong> Precio de costo <span class="text-muted">(opcional)</span></li>
+                                <li><strong>Precio Venta:</strong> Precio de venta <span class="text-muted">(opcional)</span></li>
+                                <li><strong>Codigo:</strong> Código de barras <span class="text-muted">(opcional)</span></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">Comportamiento:</h6>
+                            <ul class="list-unstyled">
+                                <li>✅ Solo necesitas el <strong>nombre del producto</strong></li>
+                                <li>✅ Si no hay código de barras, se genera automáticamente</li>
+                                <li>✅ Si no hay precios, se crean con $0 (puedes editarlos después)</li>
+                                <li>✅ Si el código de barras existe, se actualiza el producto</li>
+                                <li>✅ Los productos se marcan como activos automáticamente</li>
+                                <li>⚠️ Se muestran errores si hay problemas en el archivo</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de Importación -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Subir Archivo Excel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="importForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="excel_file" class="form-label">
+                                <i class="fas fa-file-excel me-2"></i>Seleccionar archivo Excel
+                            </label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="excel_file" 
+                                   name="excel_file" 
+                                   accept=".xlsx,.xls"
+                                   required>
+                            <div class="form-text">
+                                Formatos soportados: .xlsx, .xls
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'frontend:products_list' %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-upload me-2"></i>Importar Productos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ejemplo de Estructura -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Ejemplo de Estructura
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Articulo</th>
+                                    <th>Costo</th>
+                                    <th>Precio Venta</th>
+                                    <th>Codigo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Producto Completo</td>
+                                    <td>100.00</td>
+                                    <td>150.00</td>
+                                    <td>1234567890123</td>
+                                </tr>
+                                <tr>
+                                    <td>Producto Solo Nombre</td>
+                                    <td class="text-muted">-</td>
+                                    <td class="text-muted">-</td>
+                                    <td class="text-muted">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Producto Sin Precios</td>
+                                    <td class="text-muted">-</td>
+                                    <td class="text-muted">-</td>
+                                    <td>9876543210987</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('importForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('excel_file');
+
+    form.addEventListener('submit', function(e) {
+        if (!fileInput.files[0]) {
+            e.preventDefault();
+            alert('Por favor selecciona un archivo Excel.');
+            return;
+        }
+
+        // Cambiar el texto del botón y deshabilitarlo
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+        submitBtn.disabled = true;
+    });
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            
+            if (!['xlsx', 'xls'].includes(fileExtension)) {
+                alert('Por favor selecciona un archivo Excel válido (.xlsx o .xls)');
+                this.value = '';
+                return;
+            }
+            
+            // Mostrar el nombre del archivo seleccionado
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'alert alert-info mt-2';
+            fileInfo.innerHTML = `<i class="fas fa-file-excel me-2"></i>Archivo seleccionado: ${fileName}`;
+            
+            // Remover información anterior si existe
+            const existingInfo = fileInput.parentNode.querySelector('.alert');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            fileInput.parentNode.appendChild(fileInfo);
+        }
+    });
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-weight: 700;
+    color: #495057;
+}
+
+.form-control {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    background: white;
+    transform: translateY(-1px);
+}
+
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0.75rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: none;
+    font-weight: 700;
+    color: #495057;
+    padding: 1.2rem 1rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+</style>
+{% endblock %} 

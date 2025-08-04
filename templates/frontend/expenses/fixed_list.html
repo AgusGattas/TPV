@@ -18,10 +18,16 @@
                 </div>
             </div>
         </div>
-        <div class="title-actions">
-            <a href="{% url 'frontend:expense_fixed_create' %}" class="btn btn-primary btn-lg action-btn">
-                <i class="fas fa-plus me-2"></i>Nuevo Gasto Fijo
-            </a>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="action-buttons-container mb-4">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <a href="{% url 'frontend:expense_fixed_create' %}" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-plus me-2"></i>Crear Nuevo Gasto Fijo
+                </a>
+            </div>
         </div>
     </div>
 
@@ -187,200 +193,159 @@
 </div>
 
 <style>
-/* Estilos mejorados para el header */
-.page-main-title {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
-    color: white;
-    padding: 2.5rem;
-    border-radius: 20px;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
-    position: relative;
-    overflow: hidden;
-}
-
-.page-main-title::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-    pointer-events: none;
-}
-
-.title-container {
-    display: flex;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-}
-
-.title-icon {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border-radius: 50%;
-    width: 70px;
-    height: 70px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.title-icon i {
-    font-size: 2rem;
-    color: white;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.title-content h1 {
-    margin: 0;
-    font-weight: 800;
-    font-size: 2.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    letter-spacing: -0.5px;
-}
-
-.title-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.95;
-    margin-top: 0.5rem;
-    font-weight: 400;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.title-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-}
-
-.action-btn {
-    padding: 1.2rem 2.5rem;
-    font-weight: 700;
-    border-radius: 15px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    min-width: 220px;
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: none;
-    position: relative;
-    overflow: hidden;
-}
-
-.action-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
-
-.action-btn:hover::before {
-    left: 100%;
-}
-
-.action-btn:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
-}
-
-.btn-primary.action-btn {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    border: none;
-}
-
-.btn-primary.action-btn:hover {
-    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-}
-
-/* Estilos para las tarjetas */
-.card {
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border-radius: 15px;
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.table {
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.table thead th {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: none;
-    font-weight: 700;
-    color: #495057;
-    padding: 1.2rem 1rem;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.table tbody tr:hover {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    transform: scale(1.01);
-    transition: all 0.2s ease;
-}
-
-.avatar-sm {
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.avatar-title {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.1rem;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.badge {
-    border-radius: 25px;
-    padding: 0.6rem 1.2rem;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.btn {
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    padding: 0.75rem 1.5rem;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
+    /* Estilos modernizados para un diseño futurista y minimalista */
+    .action-buttons-container {
+        margin-top: 2rem;
+    }
+    
+    .action-buttons-container .btn {
+        border-radius: 20px;
+        font-weight: 600;
+        padding: 1.2rem 2.5rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        border: none;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .action-buttons-container .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .action-buttons-container .btn:hover::before {
+        left: 100%;
+    }
+    
+    .action-buttons-container .btn:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    }
+    
+    .action-buttons-container .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .action-buttons-container .btn-primary:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 50%, #e085e8 100%);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .action-buttons-container .btn-outline-primary {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .action-buttons-container .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-color: transparent;
+        color: white;
+    }
+    
+    /* Estilos modernizados para las tablas */
+    .table {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        font-weight: 600;
+        color: #495057;
+        padding: 1.5rem 1rem;
+    }
+    
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.05);
+        transform: scale(1.01);
+    }
+    
+    .table tbody td {
+        padding: 1.25rem 1rem;
+        border: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Estilos modernizados para el header */
+    .page-main-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 25px;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .title-icon {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Estilos modernizados para formularios */
+    .form-control, .form-select {
+        border-radius: 15px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        transform: translateY(-2px);
+    }
+    
+    /* Estilos modernizados para botones de filtro */
+    .btn-primary {
+        border-radius: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Estilos modernizados para las tarjetas */
+    .card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px 20px 0 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -409,5 +374,66 @@
         padding: 1rem 2rem;
     }
 }
+</style>
+{% endblock %} 
+
+{% block extra_css %}
+<style>
+    /* Estilos para los botones de acción */
+    .action-buttons-container {
+        margin-top: 2rem;
+    }
+    
+    .action-buttons-container .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 1rem 2rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-buttons-container .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .action-buttons-container .btn:hover::before {
+        left: 100%;
+    }
+    
+    .action-buttons-container .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .action-buttons-container .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+    }
+    
+    .action-buttons-container .btn-primary:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    }
+    
+    .action-buttons-container .btn-outline-primary {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .action-buttons-container .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        color: white;
+    }
 </style>
 {% endblock %} 

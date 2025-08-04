@@ -5,80 +5,187 @@
 
 {% block extra_css %}
 <style>
+    /* Estilos modernizados para un diseño futurista y minimalista */
+    .action-buttons-container {
+        margin-top: 2rem;
+    }
+    
+    .action-buttons-container .btn {
+        border-radius: 20px;
+        font-weight: 600;
+        padding: 1.2rem 2.5rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        border: none;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .action-buttons-container .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .action-buttons-container .btn:hover::before {
+        left: 100%;
+    }
+    
+    .action-buttons-container .btn:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    }
+    
+    .action-buttons-container .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .action-buttons-container .btn-primary:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 50%, #e085e8 100%);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    /* Estilos modernizados para las tarjetas de usuarios */
     .user-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        transition: all 0.3s ease;
     }
     
     .user-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-8px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
     }
     
     .role-badge {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 15px;
+        right: 15px;
+        border-radius: 15px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
     }
     
     .user-avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 90px;
+        height: 90px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: bold;
-        margin: 0 auto 1rem;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .user-card:hover .user-avatar {
+        transform: scale(1.05);
+        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
     }
     
     .search-box {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
         margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .status-indicator {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
         display: inline-block;
-        margin-right: 5px;
+        margin-right: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
     .status-active {
-        background-color: #28a745;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     }
     
     .status-inactive {
-        background-color: #dc3545;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
     }
     
-    .title-actions {
-        position: absolute;
-        top: 0;
-        right: 0;
-    }
-    
-    .title-actions .btn {
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: all 0.2s ease;
-    }
-    
-    .title-actions .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
+    /* Estilos modernizados para el header */
     .page-main-title {
-        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 25px;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .title-icon {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Estilos modernizados para formularios */
+    .form-control, .form-select {
+        border-radius: 15px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        transform: translateY(-2px);
+    }
+    
+    /* Estilos modernizados para botones de filtro */
+    .btn-primary {
+        border-radius: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Estilos modernizados para las tarjetas */
+    .card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px 20px 0 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 </style>
 {% endblock %}
@@ -88,16 +195,26 @@
     <!-- Header -->
     <div class="page-main-title">
         <div class="title-container">
-            <i class="fas fa-users title-icon"></i>
-            <h1>Usuarios</h1>
+            <div class="title-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Usuarios</h1>
+                <div class="title-subtitle">
+                    Administración de usuarios y permisos
+                </div>
+            </div>
         </div>
-        <div class="title-subtitle">
-            Administración de usuarios y permisos
-        </div>
-        <div class="title-actions">
-            <a href="{% url 'frontend:user_create' %}" class="btn btn-success">
-                <i class="fas fa-plus me-2"></i>Crear Usuario
-            </a>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="action-buttons-container mb-4">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <a href="{% url 'frontend:user_create' %}" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-plus me-2"></i>Crear Nuevo Usuario
+                </a>
+            </div>
         </div>
     </div>
 

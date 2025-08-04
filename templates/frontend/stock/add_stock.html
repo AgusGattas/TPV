@@ -27,6 +27,44 @@
         text-align: center;
         margin-bottom: 1rem;
     }
+    
+    /* Estilos para el resumen con texto oscuro */
+    .summary-alert {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .summary-alert h6 {
+        color: #212529 !important;
+        font-weight: 600;
+    }
+    
+    .summary-alert small {
+        color: #495057 !important;
+        font-weight: 500;
+    }
+    
+    .summary-alert .fw-bold {
+        color: #212529 !important;
+    }
+    
+    .summary-alert div {
+        color: #212529 !important;
+    }
+    
+    /* Estilos para el stock-display con texto oscuro */
+    .stock-display .h4 {
+        color: #212529 !important;
+        font-weight: 600;
+    }
+    
+    .stock-display small {
+        color: #495057 !important;
+        font-weight: 500;
+    }
 </style>
 {% endblock %}
 
@@ -130,29 +168,29 @@
                     </div>
                     
                     <!-- Resumen -->
-                    <div class="alert alert-info">
+                    <div class="summary-alert">
                         <h6 class="alert-heading">
                             <i class="fas fa-calculator me-2"></i>
                             Resumen del Movimiento
                         </h6>
                         <div class="row">
                             <div class="col-md-6">
-                                <small class="text-muted">Stock Actual</small>
-                                <div class="fw-bold">{{ stock.current_quantity }}</div>
+                                <small class="text-dark">Stock Actual</small>
+                                <div class="fw-bold text-dark">{{ stock.current_quantity }}</div>
                             </div>
                             <div class="col-md-6">
-                                <small class="text-muted">Nuevo Stock</small>
-                                <div class="fw-bold" id="newStock">-</div>
+                                <small class="text-dark">Nuevo Stock</small>
+                                <div class="fw-bold text-dark" id="newStock">-</div>
                             </div>
                         </div>
                         <div class="row mt-2">
                             <div class="col-md-6">
-                                <small class="text-muted">Último Precio de Costo</small>
-                                <div>${{ last_cost_price|floatformat:0 }}</div>
+                                <small class="text-dark">Último Precio de Costo</small>
+                                <div class="text-dark">${{ last_cost_price|floatformat:0 }}</div>
                             </div>
                             <div class="col-md-6">
-                                <small class="text-muted">Total Valor</small>
-                                <div class="fw-bold" id="newCost">-</div>
+                                <small class="text-dark">Total Valor</small>
+                                <div class="fw-bold text-dark" id="newCost">-</div>
                             </div>
                         </div>
                     </div>

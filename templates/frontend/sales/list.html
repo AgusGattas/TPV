@@ -276,6 +276,128 @@
     .page-main-title {
         position: relative;
     }
+
+    /* Estilos modernizados para un diseño futurista y minimalista */
+    .action-buttons-container {
+        margin-top: 2rem;
+    }
+    
+    .action-buttons-container .btn {
+        border-radius: 20px;
+        font-weight: 600;
+        padding: 1.2rem 2.5rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        border: none;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .action-buttons-container .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .action-buttons-container .btn:hover::before {
+        left: 100%;
+    }
+    
+    .action-buttons-container .btn:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    }
+    
+    .action-buttons-container .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .action-buttons-container .btn-primary:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 50%, #e085e8 100%);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .action-buttons-container .btn-outline-primary {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .action-buttons-container .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        color: white;
+    }
+
+    /* Estilos modernizados para el header */
+    .page-main-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 25px;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .title-icon {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Estilos modernizados para las tarjetas */
+    .card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px 20px 0 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Estilos modernizados para formularios */
+    .form-control, .form-select {
+        border-radius: 15px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        transform: translateY(-2px);
+    }
+    
+    /* Estilos modernizados para botones de filtro */
+    .btn-primary {
+        border-radius: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
 </style>
 {% endblock %}
 
@@ -284,16 +406,26 @@
     <!-- Header -->
     <div class="page-main-title">
         <div class="title-container">
-            <i class="fas fa-shopping-cart title-icon"></i>
-            <h1>Ventas</h1>
+            <div class="title-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Ventas</h1>
+                <div class="title-subtitle">
+                    Historial y gestión de ventas
+                </div>
+            </div>
         </div>
-        <div class="title-subtitle">
-            Historial y gestión de ventas
-        </div>
-        <div class="title-actions">
-            <a href="{% url 'frontend:sale_create' %}" class="btn btn-success">
-                <i class="fas fa-plus me-2"></i>Crear Venta
-            </a>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="action-buttons-container mb-4">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <a href="{% url 'frontend:sale_create' %}" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-plus me-2"></i>Crear Nueva Venta
+                </a>
+            </div>
         </div>
     </div>
 

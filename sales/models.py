@@ -178,7 +178,8 @@ class SaleItem(BaseModel):
     def calculate_subtotal(self):
         """Calcula el subtotal del item (sin descuento)"""
         if self.unit_price and self.quantity:
-            self.subtotal = self.unit_price * self.quantity
+            from decimal import Decimal
+            self.subtotal = self.unit_price * Decimal(str(self.quantity))
         else:
             self.subtotal = 0
 
@@ -186,7 +187,8 @@ class SaleItem(BaseModel):
     def discount_amount(self):
         """Calcula el monto del descuento"""
         if self.unit_price and self.quantity:
-            return (self.unit_price * self.quantity * self.discount_percentage) / 100
+            from decimal import Decimal
+            return (self.unit_price * Decimal(str(self.quantity)) * self.discount_percentage) / 100
         return 0
 
     @property
