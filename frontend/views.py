@@ -433,10 +433,19 @@ def sale_create(request):
     """Crear nueva venta"""
     from decimal import Decimal
     
-    # Verificar que haya una caja abierta
-    current_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
+    # Verificar que haya una caja abierta por el usuario actual
+    current_cashbox = CashBox.objects.filter(
+        closed_at__isnull=True,
+        user=request.user
+    ).first()
+    
     if not current_cashbox:
-        messages.error(request, 'No hay una caja abierta. Debes abrir una caja antes de realizar ventas.')
+        # Verificar si hay una caja abierta por otro usuario
+        other_user_cashbox = CashBox.objects.filter(closed_at__isnull=True).first()
+        if other_user_cashbox:
+            messages.error(request, f'Hay una caja abierta por {other_user_cashbox.user.get_full_name() or other_user_cashbox.user.username}. Solo el usuario que abrió la caja puede realizar ventas.')
+        else:
+            messages.error(request, 'No hay una caja abierta. Debes abrir una caja antes de realizar ventas.')
         return redirect('frontend:cashbox_list')
     
     if request.method == 'POST':

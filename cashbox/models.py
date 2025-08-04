@@ -45,6 +45,16 @@ class CashBox(BaseModel):
         )['total'] or Decimal('0.00')
 
     @property
+    def cash_sales(self):
+        """Total de ventas en efectivo en esta caja"""
+        return self.sales.filter(
+            is_active=True,
+            payment_method='efectivo'
+        ).aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+
+    @property
     def total_movements(self):
         """Total de movimientos de caja"""
         movements = self.movements.all()
@@ -128,7 +138,7 @@ class CashBox(BaseModel):
 
     def calculate_cash(self):
         """Calcula el efectivo esperado en caja"""
-        self.calculated_cash = self.initial_cash + self.total_sales + self.total_movements
+        self.calculated_cash = self.initial_cash + self.cash_sales + self.total_movements
         return self.calculated_cash
 
     @classmethod

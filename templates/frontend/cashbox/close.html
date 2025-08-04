@@ -379,7 +379,7 @@
                                 <div class="col-md-6">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <span class="text-muted">Efectivo Calculado:</span>
-                                        <span class="arqueo-value" id="calculated_cash">${{ cashbox.current_balance|floatformat:2 }}</span>
+                                        <span class="arqueo-value" id="calculated_cash">${{ cashbox.calculate_cash|floatformat:2 }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <span class="text-muted">Efectivo Arqueado:</span>
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const differenceAlert = document.getElementById('difference_alert');
     
     // Obtener el efectivo calculado del sistema
-    const calculatedCash = parseFloat('{{ cashbox.current_balance|floatformat:2 }}'.replace(',', '.'));
+    const calculatedCash = parseFloat('{{ cashbox.calculate_cash|floatformat:2 }}'.replace(',', '.'));
     
     function updateArqueo() {
         const countedCash = parseFloat(countedCashInput.value) || 0;
