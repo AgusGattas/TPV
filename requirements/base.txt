@@ -38,6 +38,7 @@ drf-writable-nested==0.7.0
 drf-yasg==1.21.7
 factory_boy==3.3.1
 Faker==28.4.1
+gunicorn==21.2.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
