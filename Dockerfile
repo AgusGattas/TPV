@@ -26,5 +26,5 @@ RUN chmod +x ./entrypoint-dev.sh
 
 # RUN mkdir -p /var/log/cron
 
-# Use Procfile instead of entrypoint.sh
-CMD ["python", "manage.py", "migrate", "&&", "python", "manage.py", "collectstatic", "--noinput", "&&", "gunicorn", "django_base.wsgi:application", "--bind", "0.0.0.0:$PORT", "--workers", "2", "--timeout", "120"]
+# Use entrypoint.sh instead of CMD
+CMD ["./entrypoint.sh"]
