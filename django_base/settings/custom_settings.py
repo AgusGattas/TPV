@@ -207,19 +207,11 @@ if USE_JWT:  # WITH COOKIECUTTER
     }
 
 # <-------------- Sentry -------------->
-if IS_PRODUCTION:
-    import sentry_sdk
-
-    if not SENTRY_DSN:
-        raise Exception("SENTRY_DSN not found in environment variables")
-
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100%
-        # of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=1.0,
-    )
+# Sentry disabled - not using monitoring
+# if IS_PRODUCTION and SENTRY_DSN:
+#     import sentry_sdk
+#     sentry_sdk.init(
+#         dsn=SENTRY_DSN,
+#         traces_sample_rate=1.0,
+#         profiles_sample_rate=1.0,
+#     )
