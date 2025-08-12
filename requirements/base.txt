@@ -50,6 +50,7 @@ msgpack==1.0.8
 mypy-extensions==1.0.0
 numpy==2.1.1
 oauthlib==3.2.2
+openpyxl==3.1.2
 packaging==24.1
 pandas==2.2.2
 pathspec==0.12.1
