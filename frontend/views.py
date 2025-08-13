@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from django.db.models import Sum, Count, Q, F
+from django.db.models import Sum, Count, Q, F, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
@@ -105,7 +105,8 @@ def dashboard(request):
 def products_list(request):
     """Lista de productos con búsqueda y filtros"""
     
-    products = Product.objects.filter(is_active=True).prefetch_related('images')
+    # Consulta base optimizada con select_related y prefetch_related
+    products = Product.objects.filter(is_active=True).select_related('stock_info').prefetch_related('images')
     
     # Búsqueda
     search = request.GET.get('search', '')
@@ -134,11 +135,17 @@ def products_list(request):
     order_by = request.GET.get('order_by', '-created_at')
     products = products.order_by(order_by)
     
+    # Paginación - 20 productos por página
+    paginator = Paginator(products, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'products': products,
+        'products': page_obj,
         'search': search,
         'stock_filter': stock_filter,
         'order_by': order_by,
+        'page_obj': page_obj,
     }
     
     return render(request, 'frontend/products/list.html', context)
@@ -535,7 +542,8 @@ def sale_create(request):
 def stock_list(request):
     """Lista de stock con movimientos"""
     
-    stocks = Stock.objects.select_related('product').all()
+    # Consulta base optimizada
+    stocks = Stock.objects.select_related('product').prefetch_related('product__images').all()
     
     # Filtros
     search = request.GET.get('search', '')
@@ -554,22 +562,41 @@ def stock_list(request):
     elif stock_filter == 'out':
         stocks = stocks.filter(current_quantity=0)
     
-    # Obtener el último precio de costo para cada stock
-    for stock in stocks:
-        last_cost_price = StockMovement.objects.filter(
-            stock=stock,
+    # Ordenamiento
+    order_by = request.GET.get('order_by', '-current_quantity')
+    stocks = stocks.order_by(order_by)
+    
+    # Paginación - 20 stocks por página
+    paginator = Paginator(stocks, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Optimización: Obtener todos los últimos precios de costo en una sola consulta
+    stock_ids = [stock.id for stock in page_obj]
+    last_cost_prices = {}
+    
+    if stock_ids:
+        # Obtener el último precio de costo para cada stock en una sola consulta
+        latest_movements = StockMovement.objects.filter(
+            stock_id__in=stock_ids,
             type='ingreso'
-        ).order_by('-created_at').values_list('cost_price', flat=True).first()
+        ).values('stock_id').annotate(
+            last_cost=Max('cost_price')
+        )
         
-        if last_cost_price is None:
-            last_cost_price = stock.product.cost_price
-        
-        stock.last_cost_price = last_cost_price
+        for movement in latest_movements:
+            last_cost_prices[movement['stock_id']] = movement['last_cost']
+    
+    # Asignar los precios de costo a cada stock
+    for stock in page_obj:
+        stock.last_cost_price = last_cost_prices.get(stock.id, stock.product.cost_price)
     
     context = {
-        'stocks': stocks,
+        'stocks': page_obj,
         'search': search,
         'stock_filter': stock_filter,
+        'order_by': order_by,
+        'page_obj': page_obj,
     }
     
     return render(request, 'frontend/stock/list.html', context)
@@ -598,11 +625,17 @@ def stock_movements(request):
     
     movements = movements.order_by('-created_at')
     
+    # Paginación - 50 movimientos por página
+    paginator = Paginator(movements, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'movements': movements,
+        'movements': page_obj,
         'movement_type': movement_type,
         'date_from': date_from,
         'date_to': date_to,
+        'page_obj': page_obj,
     }
     
     return render(request, 'frontend/stock/movements.html', context)
