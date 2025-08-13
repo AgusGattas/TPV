@@ -6,6 +6,13 @@ python manage.py migrate
 echo "Recolectando archivos estáticos..."
 python manage.py collectstatic --noinput
 
+# Ejecutar script de stock inicial si la variable está definida
+if [ "$RUN_STOCK_SCRIPT" = "true" ]; then
+    echo "Ejecutando script de stock inicial..."
+    python manage.py add_initial_stock
+    echo "Script de stock inicial completado"
+fi
+
 # Crear o actualizar superusuario
 if [ "$CREATE_SUPERUSER" = "true" ]; then
     echo "Verificando superusuario..."
