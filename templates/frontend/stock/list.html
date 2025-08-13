@@ -281,6 +281,41 @@
             {% endfor %}
         </div>
         
+        <!-- Paginación -->
+        {% if stocks.has_other_pages %}
+        <nav aria-label="Navegación de stock">
+            <ul class="pagination justify-content-center">
+                {% if stocks.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ stocks.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in stocks.paginator.page_range %}
+                    {% if stocks.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > stocks.number|add:'-3' and num < stocks.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if stocks.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ stocks.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if stock_filter %}&stock_filter={{ stock_filter }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
     {% else %}
         <!-- Estado vacío -->
         <div class="text-center py-5">

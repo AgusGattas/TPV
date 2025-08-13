@@ -8,12 +8,12 @@ import random
 
 
 class Product(BaseSoftDeleteModel):
-    name = models.CharField(_("Name"), max_length=255)
-    barcode = models.CharField(_("Barcode"), max_length=50, unique=True, null=True, blank=True)
+    name = models.CharField(_("Name"), max_length=255, db_index=True)
+    barcode = models.CharField(_("Barcode"), max_length=50, unique=True, null=True, blank=True, db_index=True)
     price = models.DecimalField(_("Price"), max_digits=10, decimal_places=2)
     cost_price = models.DecimalField(_("Cost Price"), max_digits=10, decimal_places=2, default=0)
     min_stock = models.IntegerField(_("Minimum Stock"), default=0, help_text=_("Stock mínimo para alertas"))
-    is_active = models.BooleanField(_("Is Active"), default=True)
+    is_active = models.BooleanField(_("Is Active"), default=True, db_index=True)
     description = models.TextField(_("Description"), blank=True, null=True)
     unit = models.CharField(_("Unit"), max_length=20, default="unidad", help_text=_("Unidad de medida: unidad, kg, litro, etc."))
 
@@ -21,6 +21,12 @@ class Product(BaseSoftDeleteModel):
         verbose_name = _("Product")
         verbose_name_plural = _("Products")
         ordering = ["name"]
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['barcode']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['created_at']),
+        ]
 
     def __str__(self):
         return self.name
