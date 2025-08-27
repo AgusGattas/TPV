@@ -105,6 +105,23 @@
         border-radius: 15px;
         padding: 1.5rem;
     }
+    
+    .payment-method-icon {
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+    }
+    
+    .payment-method-row {
+        transition: all 0.2s ease;
+    }
+    
+    .payment-method-row:hover {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 8px;
+        margin: -8px;
+    }
 </style>
 {% endblock %}
 
@@ -383,6 +400,72 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Ventas por Método de Pago -->
+            <div class="cashbox-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Ventas por Método de Pago
+                </h5>
+                
+                {% if cashbox.total_sales > 0 %}
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                            </div>
+                            <div class="fw-bold">${{ sales_by_payment.efectivo|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-credit-card me-1"></i>Débito
+                            </div>
+                            <div class="fw-bold">${{ sales_by_payment.debito|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-credit-card me-1"></i>Crédito
+                            </div>
+                            <div class="fw-bold">${{ sales_by_payment.credito|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                            </div>
+                            <div class="fw-bold">${{ sales_by_payment.transferencia|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-qrcode me-1"></i>QR
+                            </div>
+                            <div class="fw-bold">${{ sales_by_payment.qr|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">
+                                <i class="fas fa-percentage me-1"></i>% Efectivo
+                            </div>
+                            <div class="fw-bold">
+                                {% if cashbox.total_sales > 0 %}
+                                    {% widthratio sales_by_payment.efectivo cashbox.total_sales 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                        <div>No hay ventas registradas</div>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Arqueo de Caja (solo si está cerrada) -->

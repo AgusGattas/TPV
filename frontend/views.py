@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import json
 from django.contrib.auth import authenticate, login, logout
 from decimal import Decimal
+import decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
@@ -714,10 +715,14 @@ def cashbox_detail(request, pk):
     # Ventas de la caja
     sales = Sale.objects.filter(cashbox=cashbox, is_active=True).order_by('-created_at')
     
+    # Ventas por método de pago
+    sales_by_payment = cashbox.sales_by_payment_method
+    
     context = {
         'cashbox': cashbox,
         'movements': movements,
         'sales': sales,
+        'sales_by_payment': sales_by_payment,
     }
     
     return render(request, 'frontend/cashbox/detail.html', context)
@@ -777,10 +782,19 @@ def close_cashbox(request, pk):
     
     if request.method == 'POST':
         try:
-            counted_cash = Decimal(request.POST.get('counted_cash', 0))
-            cash_to_keep = request.POST.get('cash_to_keep')
-            if cash_to_keep:
-                cash_to_keep = Decimal(cash_to_keep)
+            # Obtener y limpiar counted_cash
+            counted_cash_str = request.POST.get('counted_cash', '0').strip()
+            if not counted_cash_str:
+                counted_cash_str = '0'
+            counted_cash_str = counted_cash_str.replace(',', '.')
+            counted_cash = Decimal(counted_cash_str)
+            
+            # Obtener y limpiar cash_to_keep
+            cash_to_keep = None
+            cash_to_keep_str = request.POST.get('cash_to_keep', '').strip()
+            if cash_to_keep_str:
+                cash_to_keep_str = cash_to_keep_str.replace(',', '.')
+                cash_to_keep = Decimal(cash_to_keep_str)
             
             closing_notes = request.POST.get('closing_notes', '').strip()
             
@@ -793,8 +807,10 @@ def close_cashbox(request, pk):
             messages.success(request, 'Caja cerrada exitosamente')
             return redirect('frontend:cashbox_detail', pk=pk)
             
+        except (ValueError, TypeError, decimal.ConversionSyntax) as e:
+            messages.error(request, f'Error en el formato de los números: {str(e)}')
         except Exception as e:
-            messages.error(request, str(e))
+            messages.error(request, f'Error al cerrar la caja: {str(e)}')
     
     # Movimientos de la caja
     movements = CashMovement.objects.filter(cashbox=cashbox).order_by('-created_at')
@@ -802,10 +818,14 @@ def close_cashbox(request, pk):
     # Ventas de la caja
     sales = Sale.objects.filter(cashbox=cashbox, is_active=True).order_by('-created_at')
     
+    # Ventas por método de pago
+    sales_by_payment = cashbox.sales_by_payment_method
+    
     context = {
         'cashbox': cashbox,
         'movements': movements,
         'sales': sales,
+        'sales_by_payment': sales_by_payment,
     }
     
     return render(request, 'frontend/cashbox/close.html', context)

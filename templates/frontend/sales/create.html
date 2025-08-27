@@ -60,6 +60,22 @@
         cursor: not-allowed;
     }
     
+    .quantity-input {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        padding: 4px 8px;
+        text-align: center;
+        background: white;
+    }
+    
+    .quantity-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
     .discount-control {
         display: flex;
         align-items: center;
@@ -521,7 +537,7 @@ document.getElementById('productSearch').addEventListener('input', function() {
     
     searchTimeout = setTimeout(() => {
         searchProducts(query);
-    }, 300);
+    }, 3000);
 });
 
 function searchProducts(query) {
@@ -632,8 +648,14 @@ function updateCartDisplay() {
                     </div>
                     <div class="col-md-2">
                         <div class="quantity-control">
-                            <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
-                            <span class="fw-bold">${item.quantity}</span>
+                            <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, -1)" ${item.quantity <= 0.01 ? 'disabled' : ''}>-</button>
+                            <input type="number" class="form-control quantity-input" 
+                                   value="${item.quantity}" 
+                                   min="0.01" max="${item.stock}" 
+                                   step="0.01"
+                                   onchange="changeQuantityManual(${index}, this.value)"
+                                   onblur="validateQuantity(${index}, this.value)"
+                                   style="width: 70px; text-align: center; display: inline-block; margin: 0 5px;">
                             <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, 1)" ${item.quantity >= item.stock ? 'disabled' : ''}>+</button>
                         </div>
                     </div>
@@ -683,10 +705,45 @@ function updateCartDisplay() {
 // Cambiar cantidad
 function changeQuantity(index, change) {
     const item = cart[index];
-    const newQuantity = item.quantity + change;
+    const newQuantity = parseFloat((item.quantity + change).toFixed(2));
     
     if (newQuantity > 0 && newQuantity <= item.stock) {
         item.quantity = newQuantity;
+        updateCartDisplay();
+    }
+}
+
+// Cambiar cantidad manualmente
+function changeQuantityManual(index, newQuantity) {
+    const item = cart[index];
+    const quantity = parseFloat(newQuantity) || 0.01;
+    
+    if (quantity > 0 && quantity <= item.stock) {
+        item.quantity = quantity;
+        updateCartDisplay();
+    } else if (quantity > item.stock) {
+        alert(`No hay suficiente stock. Máximo disponible: ${item.stock}`);
+        item.quantity = item.stock;
+        updateCartDisplay();
+    } else if (quantity <= 0) {
+        alert('La cantidad debe ser mayor a 0');
+        item.quantity = 0.01;
+        updateCartDisplay();
+    }
+}
+
+// Validar cantidad al perder el foco
+function validateQuantity(index, newQuantity) {
+    const item = cart[index];
+    const quantity = parseFloat(newQuantity) || 0.01;
+    
+    if (quantity > item.stock) {
+        alert(`No hay suficiente stock. Máximo disponible: ${item.stock}`);
+        item.quantity = item.stock;
+        updateCartDisplay();
+    } else if (quantity <= 0) {
+        alert('La cantidad debe ser mayor a 0');
+        item.quantity = 0.01;
         updateCartDisplay();
     }
 }
