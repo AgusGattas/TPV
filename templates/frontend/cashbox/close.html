@@ -64,6 +64,17 @@
     .difference-zero {
         color: #28a745 !important;
     }
+    
+    /* Mejorar campos de entrada numérica */
+    .input-group input[type="number"] {
+        text-align: right;
+        font-weight: 600;
+    }
+    
+    .input-group input[type="number"]:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
 </style>
 {% endblock %}
 
@@ -215,6 +226,126 @@
                 {% endif %}
             </div>
 
+            <!-- Ventas por Método de Pago -->
+            <div class="summary-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Ventas por Método de Pago
+                </h5>
+                
+                {% if cashbox.total_sales > 0 %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-success">${{ sales_by_payment.efectivo|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Efectivo
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if cashbox.total_sales > 0 %}
+                                            {% widthratio sales_by_payment.efectivo cashbox.total_sales 100 %}% del total
+                                        {% else %}
+                                            0% del total
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-primary">${{ sales_by_payment.debito|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-credit-card me-1"></i>Débito
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if cashbox.total_sales > 0 %}
+                                            {% widthratio sales_by_payment.debito cashbox.total_sales 100 %}% del total
+                                        {% else %}
+                                            0% del total
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-info">${{ sales_by_payment.credito|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-credit-card me-1"></i>Crédito
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if cashbox.total_sales > 0 %}
+                                            {% widthratio sales_by_payment.credito cashbox.total_sales 100 %}% del total
+                                        {% else %}
+                                            0% del total
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-warning">${{ sales_by_payment.transferencia|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-exchange-alt me-1"></i>Transferencia
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if cashbox.total_sales > 0 %}
+                                            {% widthratio sales_by_payment.transferencia cashbox.total_sales 100 %}% del total
+                                        {% else %}
+                                            0% del total
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-secondary">${{ sales_by_payment.qr|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-qrcode me-1"></i>QR
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if cashbox.total_sales > 0 %}
+                                            {% widthratio sales_by_payment.qr cashbox.total_sales 100 %}% del total
+                                        {% else %}
+                                            0% del total
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-dark">${{ cashbox.total_sales|floatformat:2 }}</h4>
+                                    <p class="mb-0">
+                                        <i class="fas fa-calculator me-1"></i>Total Ventas
+                                    </p>
+                                    <small class="text-muted">100% del total</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                        <p>No hay ventas registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+
             <!-- Movimientos recientes -->
             <div class="summary-card">
                 <h5 class="mb-3">
@@ -348,7 +479,8 @@
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" id="counted_cash" name="counted_cash" 
                                            step="0.01" min="0" required placeholder="0.00"
-                                           value="{{ cashbox.current_balance|floatformat:2 }}">
+                                           value="{{ cashbox.current_balance|floatformat:2 }}"
+                                           inputmode="decimal">
                                 </div>
                                 <div class="form-text">Monto de efectivo contado físicamente en caja</div>
                             </div>
@@ -359,7 +491,8 @@
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" id="cash_to_keep" name="cash_to_keep" 
-                                           step="0.01" min="0" placeholder="0.00">
+                                           step="0.01" min="0" placeholder="0.00"
+                                           inputmode="decimal">
                                 </div>
                                 <div class="form-text">Efectivo a mantener para la próxima apertura (opcional)</div>
                             </div>
@@ -379,7 +512,7 @@
                                 <div class="col-md-6">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <span class="text-muted">Efectivo Calculado:</span>
-                                        <span class="arqueo-value" id="calculated_cash">${{ cashbox.calculate_cash|floatformat:2 }}</span>
+                                        <span class="arqueo-value" id="calculated_cash">${{ cashbox.calculate_cash_property|floatformat:2 }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <span class="text-muted">Efectivo Arqueado:</span>
@@ -453,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const differenceAlert = document.getElementById('difference_alert');
     
     // Obtener el efectivo calculado del sistema
-    const calculatedCash = parseFloat('{{ cashbox.calculate_cash|floatformat:2 }}'.replace(',', '.'));
+    const calculatedCash = parseFloat('{{ cashbox.calculate_cash_property|floatformat:2 }}'.replace(',', '.'));
     
     function updateArqueo() {
         const countedCash = parseFloat(countedCashInput.value) || 0;
@@ -501,7 +634,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-formateo de montos
     function formatAmount(input) {
-        let value = input.value.replace(/[^\d.]/g, '');
+        const cursorPosition = input.selectionStart;
+        const originalValue = input.value;
+        let value = originalValue;
+        
+        // Permitir solo números y un punto decimal
+        value = value.replace(/[^\d.]/g, '');
+        
+        // Asegurar que solo haya un punto decimal
+        const dotIndex = value.indexOf('.');
+        if (dotIndex !== -1) {
+            const beforeDot = value.substring(0, dotIndex);
+            const afterDot = value.substring(dotIndex + 1).replace(/\./g, '');
+            value = beforeDot + '.' + afterDot;
+        }
+        
+        // Limitar a 2 decimales
         if (value.includes('.')) {
             const parts = value.split('.');
             if (parts[1].length > 2) {
@@ -509,16 +657,99 @@ document.addEventListener('DOMContentLoaded', function() {
                 value = parts.join('.');
             }
         }
-        input.value = value;
+        
+        // No permitir valores negativos
+        if (value.startsWith('-')) {
+            value = value.substring(1);
+        }
+        
+        // Solo actualizar si el valor cambió
+        if (value !== originalValue) {
+            input.value = value;
+            
+            // Ajustar la posición del cursor
+            let newCursorPosition = cursorPosition;
+            
+            // Si se eliminó un punto decimal, ajustar la posición
+            if (originalValue.split('.').length > value.split('.').length) {
+                newCursorPosition = Math.max(0, cursorPosition - 1);
+            }
+            
+            // Si se agregó un punto decimal, ajustar la posición
+            if (originalValue.split('.').length < value.split('.').length) {
+                newCursorPosition = Math.min(value.length, cursorPosition + 1);
+            }
+            
+            // Mantener el cursor en una posición válida
+            newCursorPosition = Math.min(newCursorPosition, value.length);
+            newCursorPosition = Math.max(0, newCursorPosition);
+            
+            // Restaurar la posición del cursor
+            setTimeout(() => {
+                input.setSelectionRange(newCursorPosition, newCursorPosition);
+            }, 0);
+        }
+    }
+    
+    // Función más suave para formatear solo cuando sea necesario
+    function gentleFormatAmount(input) {
+        const value = input.value;
+        
+        // Solo formatear si hay caracteres no válidos o múltiples puntos
+        if (/[^\d.]/.test(value) || value.split('.').length > 2) {
+            formatAmount(input);
+        }
     }
     
     countedCashInput.addEventListener('input', function() {
-        formatAmount(this);
+        gentleFormatAmount(this);
     });
     
     cashToKeepInput.addEventListener('input', function() {
-        formatAmount(this);
+        gentleFormatAmount(this);
     });
+    
+    // Manejar entrada de punto decimal de manera más inteligente
+    function handleDecimalInput(input) {
+        const cursorPosition = input.selectionStart;
+        const value = input.value;
+        
+        // Si ya hay un punto y el usuario intenta agregar otro, prevenir
+        if (value.split('.').length > 2) {
+            const parts = value.split('.');
+            const newValue = parts[0] + '.' + parts.slice(1).join('');
+            input.value = newValue;
+            
+            // Mantener el cursor en la posición correcta
+            setTimeout(() => {
+                const newPosition = Math.min(cursorPosition, newValue.length);
+                input.setSelectionRange(newPosition, newPosition);
+            }, 0);
+        }
+    }
+    
+    // Event listeners más simples para manejo de decimales
+    function handleKeyDown(e) {
+        // Permitir: backspace, delete, tab, escape, enter, punto decimal, números
+        if ([46, 8, 9, 27, 13, 110, 190].indexOf(e.keyCode) !== -1 ||
+            // Permitir Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            (e.keyCode === 67 && e.ctrlKey === true) ||
+            (e.keyCode === 86 && e.ctrlKey === true) ||
+            (e.keyCode === 88 && e.ctrlKey === true) ||
+            // Permitir home, end, left, right
+            (e.keyCode >= 35 && e.keyCode <= 39) ||
+            // Permitir números (0-9)
+            (e.keyCode >= 48 && e.keyCode <= 57) ||
+            (e.keyCode >= 96 && e.keyCode <= 105)) {
+            return;
+        }
+        // Prevenir otros caracteres
+        e.preventDefault();
+    }
+    
+    countedCashInput.addEventListener('keydown', handleKeyDown);
+    cashToKeepInput.addEventListener('keydown', handleKeyDown);
     
     // Inicializar tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

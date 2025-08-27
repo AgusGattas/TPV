@@ -5,6 +5,7 @@ from django_base.base_utils.base_models import BaseModel
 from django.db.models import Sum
 from django.utils import timezone
 from decimal import Decimal
+import decimal
 
 
 class CashBox(BaseModel):
@@ -53,6 +54,57 @@ class CashBox(BaseModel):
         ).aggregate(
             total=Sum('total_final')
         )['total'] or Decimal('0.00')
+
+    @property
+    def debit_sales(self):
+        """Total de ventas con tarjeta de débito en esta caja"""
+        return self.sales.filter(
+            is_active=True,
+            payment_method='debito'
+        ).aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def credit_sales(self):
+        """Total de ventas con tarjeta de crédito en esta caja"""
+        return self.sales.filter(
+            is_active=True,
+            payment_method='credito'
+        ).aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def transfer_sales(self):
+        """Total de ventas por transferencia en esta caja"""
+        return self.sales.filter(
+            is_active=True,
+            payment_method='transferencia'
+        ).aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def qr_sales(self):
+        """Total de ventas por QR en esta caja"""
+        return self.sales.filter(
+            is_active=True,
+            payment_method='qr'
+        ).aggregate(
+            total=Sum('total_final')
+        )['total'] or Decimal('0.00')
+
+    @property
+    def sales_by_payment_method(self):
+        """Diccionario con ventas agrupadas por método de pago"""
+        return {
+            'efectivo': self.cash_sales,
+            'debito': self.debit_sales,
+            'credito': self.credit_sales,
+            'transferencia': self.transfer_sales,
+            'qr': self.qr_sales,
+        }
 
     @property
     def total_movements(self):
@@ -138,8 +190,21 @@ class CashBox(BaseModel):
 
     def calculate_cash(self):
         """Calcula el efectivo esperado en caja"""
-        self.calculated_cash = self.initial_cash + self.cash_sales + self.total_movements
-        return self.calculated_cash
+        calculated = self.initial_cash + self.cash_sales + self.total_movements
+        
+        # Asegurar que el resultado sea Decimal
+        if not isinstance(calculated, Decimal):
+            calculated = Decimal('0.00')
+        
+        self.calculated_cash = calculated
+        return calculated
+    
+    @property
+    def calculate_cash_property(self):
+        """Propiedad que calcula el efectivo esperado en caja"""
+        if self.calculated_cash is not None:
+            return self.calculated_cash
+        return self.calculate_cash()
 
     @classmethod
     def get_last_cash_to_keep(cls):
@@ -162,16 +227,32 @@ class CashBox(BaseModel):
         if not self.is_open:
             raise ValueError("La caja ya está cerrada")
         
-        self.calculate_cash()
+        # Convertir counted_cash a Decimal de forma segura
+        if isinstance(counted_cash, str):
+            counted_cash = counted_cash.replace(',', '.')
+        counted_cash = Decimal(str(counted_cash))
+        
+        # Calcular el efectivo esperado
+        calculated_cash = self.calculate_cash()
+        
+        # Asegurar que calculated_cash sea Decimal
+        if not isinstance(calculated_cash, Decimal):
+            calculated_cash = Decimal('0.00')
+        
         self.counted_cash = counted_cash
-        self.difference = self.counted_cash - self.calculated_cash
+        self.calculated_cash = calculated_cash
+        self.difference = counted_cash - calculated_cash
         
         # Si no se especifica cash_to_keep, usar el counted_cash completo
         if cash_to_keep is None:
-            cash_to_keep = self.counted_cash
+            cash_to_keep = counted_cash
+        else:
+            if isinstance(cash_to_keep, str):
+                cash_to_keep = cash_to_keep.replace(',', '.')
+            cash_to_keep = Decimal(str(cash_to_keep))
         
         self.cash_to_keep = cash_to_keep
-        self.cash_to_withdraw = self.counted_cash - cash_to_keep
+        self.cash_to_withdraw = counted_cash - cash_to_keep
         self.closing_notes = closing_notes
         self.closed_at = timezone.now()
         self.save()
