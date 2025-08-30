@@ -32,9 +32,14 @@ class Product(BaseSoftDeleteModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        # Generar código de barras automáticamente si no existe
-        if not self.barcode:
+        # Generar código de barras automáticamente solo si no existe o está vacío
+        if not self.barcode or self.barcode.strip() == '':
             self.barcode = self.generate_barcode()
+        else:
+            # Verificar que el código de barras manual sea único
+            existing_product = Product.objects.filter(barcode=self.barcode).exclude(pk=self.pk).first()
+            if existing_product:
+                raise ValueError(f'El código de barras "{self.barcode}" ya existe en el producto "{existing_product.name}"')
         
         super().save(*args, **kwargs)
 
