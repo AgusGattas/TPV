@@ -363,6 +363,14 @@ def product_edit(request, pk):
             messages.error(request, f'Error al actualizar el producto: {str(e)}')
             return render(request, 'frontend/products/edit.html', {'product': product})
     
+    # Asegurar que el producto tenga stock_info
+    if not hasattr(product, 'stock_info') or product.stock_info is None:
+        # Crear stock si no existe
+        stock, created = Stock.objects.get_or_create(
+            product=product,
+            defaults={'current_quantity': 0, 'average_cost': 0}
+        )
+    
     context = {
         'product': product,
         'last_cost_price': last_cost_price,
