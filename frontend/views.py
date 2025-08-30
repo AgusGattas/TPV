@@ -206,6 +206,7 @@ def product_create(request):
             description = request.POST.get('description', '')
             unit = request.POST.get('unit', 'unidad')
             initial_stock = request.POST.get('initial_stock', 0)
+            barcode = request.POST.get('barcode', '').strip()  # Agregar código de barras
             
             # Validaciones básicas
             if not name or not price:
@@ -218,14 +219,26 @@ def product_create(request):
                 return render(request, 'frontend/products/create.html')
             
             # Crear el producto
-            product = Product.objects.create(
-                name=name,
-                price=price,
-                cost_price=cost_price,
-                min_stock=min_stock,
-                description=description,
-                unit=unit
-            )
+            try:
+                product = Product.objects.create(
+                    name=name,
+                    price=price,
+                    cost_price=cost_price,
+                    min_stock=min_stock,
+                    description=description,
+                    unit=unit,
+                    barcode=barcode if barcode else None  # Solo usar el código si no está vacío
+                )
+            except ValueError as e:
+                # Error de código de barras duplicado
+                error_message = str(e)
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': error_message
+                    })
+                messages.error(request, error_message)
+                return render(request, 'frontend/products/create.html')
             
             # Crear registro de stock inicial
             if initial_stock and float(initial_stock) > 0:
@@ -315,8 +328,14 @@ def product_edit(request, pk):
             product.min_stock = min_stock
             product.description = description
             product.unit = unit
-            product.barcode = barcode
-            product.save()
+            product.barcode = barcode.strip() if barcode else None
+            
+            try:
+                product.save()
+            except ValueError as e:
+                # Error de código de barras duplicado
+                messages.error(request, str(e))
+                return render(request, 'frontend/products/edit.html', {'product': product})
             
             # Si el precio de costo cambió, actualizar el último movimiento de stock
             if old_cost_price != product.cost_price:
