@@ -322,7 +322,8 @@
                         <div class="col-md-8">
                             <div class="position-relative">
                                 <input type="text" class="form-control form-control-lg" id="productSearch" 
-                                       placeholder="Buscar por nombre o código de barras...">
+                                       placeholder="Buscar por nombre o código de barras..."
+                                       onfocus="this.select()">
                                 <div class="search-results" id="searchResults"></div>
                             </div>
                         </div>
@@ -337,7 +338,8 @@
                     <div class="barcode-scanner" id="barcodeScanner" style="display: none;">
                         <h6 class="mb-2">Escáner de Código de Barras</h6>
                         <input type="text" class="form-control" id="barcodeInput" 
-                               placeholder="Coloca el cursor aquí y escanea el código...">
+                               placeholder="Coloca el cursor aquí y escanea el código..."
+                               onfocus="this.select()">
                         <small class="text-muted">Presiona Enter para buscar</small>
                     </div>
                 </div>
@@ -415,6 +417,7 @@
                         <input type="number" class="form-control" id="saleDiscount" 
                                min="0" max="100" step="0.1" value="0"
                                onchange="updateSaleDiscount(this.value)"
+                               onfocus="this.select()"
                                placeholder="0">
                         <span class="input-group-text">%</span>
                     </div>
@@ -442,6 +445,7 @@
                         <input type="number" class="form-control form-control-lg" id="totalFinalEditable" 
                                min="0" step="0.01" value="0"
                                onchange="updateTotalFromAmount(this.value)"
+                               onfocus="this.select()"
                                placeholder="0.00">
                     </div>
                     <div class="text-white-50 small mt-2">
@@ -655,6 +659,7 @@ function updateCartDisplay() {
                                    step="0.01"
                                    onchange="changeQuantityManual(${index}, this.value)"
                                    onblur="validateQuantity(${index}, this.value)"
+                                   onfocus="this.select()"
                                    style="width: 70px; text-align: center; display: inline-block; margin: 0 5px;">
                             <button type="button" class="quantity-btn" onclick="changeQuantity(${index}, 1)" ${item.quantity >= item.stock ? 'disabled' : ''}>+</button>
                         </div>
@@ -666,6 +671,7 @@ function updateCartDisplay() {
                                        value="${item.discount}" 
                                        min="0" max="100" step="1"
                                        onchange="changeDiscount(${index}, this.value)"
+                                       onfocus="this.select()"
                                        placeholder="0">
                                 <span class="input-group-text">%</span>
                             </div>

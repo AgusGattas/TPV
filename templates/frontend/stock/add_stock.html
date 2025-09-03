@@ -129,7 +129,7 @@
                     <div class="mb-3">
                         <label for="quantity" class="form-label">Cantidad a Agregar *</label>
                         <input type="number" class="form-control" id="quantity" name="quantity" 
-                               min="1" value="1" required>
+                               min="1" value="1" required onfocus="this.select()">
                         <div class="form-text">
                             <i class="fas fa-info-circle me-1"></i>
                             Ingresa la cantidad de unidades que vas a agregar
@@ -141,7 +141,7 @@
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control" id="cost_price" name="cost_price" 
-                                   step="0.01" min="0" value="{{ last_cost_price|floatformat:2 }}" required>
+                                   step="0.01" min="0" value="{{ last_cost_price|floatformat:2 }}" required onfocus="this.select()">
                         </div>
                         <div class="form-text">
                             <i class="fas fa-calculator me-1"></i>
@@ -164,7 +164,7 @@
                     <div class="mb-3" id="customReasonDiv" style="display: none;">
                         <label for="custom_reason" class="form-label">Motivo Personalizado</label>
                         <input type="text" class="form-control" id="custom_reason" name="custom_reason" 
-                               placeholder="Especifica el motivo...">
+                               placeholder="Especifica el motivo..." onfocus="this.select()">
                     </div>
                     
                     <!-- Resumen -->
