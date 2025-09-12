@@ -1901,13 +1901,6 @@ def expense_bill_create(request, expense_pk):
                 messages.error(request, 'Todos los campos obligatorios deben estar completos')
                 return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
             
-            # Validar que no exista ya una boleta para ese mes/año
-            existing_bill = MonthlyExpense.objects.filter(
-                fixed_expense=expense,
-                year=year,
-                month=month
-            ).first()
-            
             # Función para obtener el nombre del mes
             def get_month_name(month_num):
                 months = {
@@ -1916,10 +1909,47 @@ def expense_bill_create(request, expense_pk):
                 }
                 return months.get(month_num, '')
             
-            if existing_bill:
-                month_name = get_month_name(int(month))
-                messages.error(request, f'Ya existe una boleta para {month_name} {year}')
-                return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
+            # Función para obtener el número de semana del mes
+            def get_week_of_month(date):
+                from datetime import datetime
+                first_day = date.replace(day=1)
+                first_weekday = first_day.weekday()
+                days_since_first_weekday = (date.day - 1) + first_weekday
+                return (days_since_first_weekday // 7) + 1
+            
+            # Validación según la frecuencia del gasto
+            if expense.frequency == 'weekly':
+                # Para gastos semanales: validar que no exista una boleta para la misma semana
+                due_date_obj = datetime.strptime(due_date, '%Y-%m-%d').date()
+                week_of_month = get_week_of_month(due_date_obj)
+                
+                # Buscar boletas existentes en el mismo mes y año
+                existing_bills = MonthlyExpense.objects.filter(
+                    fixed_expense=expense,
+                    year=year,
+                    month=month
+                )
+                
+                # Verificar si ya existe una boleta para la misma semana
+                for bill in existing_bills:
+                    bill_week = get_week_of_month(bill.due_date)
+                    if bill_week == week_of_month:
+                        month_name = get_month_name(int(month))
+                        messages.error(request, f'Ya existe una boleta para la semana {week_of_month} de {month_name} {year}')
+                        return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
+                        
+            else:
+                # Para otras frecuencias (mensual, trimestral, etc.): validar que no exista una boleta para ese mes/año
+                existing_bill = MonthlyExpense.objects.filter(
+                    fixed_expense=expense,
+                    year=year,
+                    month=month
+                ).first()
+                
+                if existing_bill:
+                    month_name = get_month_name(int(month))
+                    messages.error(request, f'Ya existe una boleta para {month_name} {year}')
+                    return render(request, 'frontend/expenses/bill_create.html', {'expense': expense})
             
             # Crear la boleta
             bill = MonthlyExpense.objects.create(

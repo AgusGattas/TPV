@@ -31,7 +31,7 @@ class FixedExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_monthly_amount(self, obj):
-        return obj.get_monthly_amount()
+        return obj.monthly_amount
 
     def get_monthly_expenses_count(self, obj):
         return obj.monthly_expenses.count()

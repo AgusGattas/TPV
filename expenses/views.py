@@ -93,7 +93,7 @@ class FixedExpenseViewSet(BaseModelViewSet):
         """Estadísticas de gastos fijos"""
         total_expenses = FixedExpense.objects.filter(is_active=True).count()
         total_monthly_amount = sum(
-            expense.get_monthly_amount() 
+            expense.monthly_amount 
             for expense in FixedExpense.objects.filter(is_active=True)
         )
         
