@@ -231,6 +231,7 @@
 // Establecer la fecha de vencimiento por defecto basada en el día de vencimiento del costo fijo
 document.addEventListener('DOMContentLoaded', function() {
     const dueDay = {{ expense.due_day }};
+    const frequency = '{{ expense.frequency }}';
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
@@ -239,11 +240,44 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('year').value = currentYear;
     document.getElementById('month').value = currentMonth;
     
-    // Establecer fecha de vencimiento por defecto
-    const defaultDueDate = new Date(currentYear, currentMonth - 1, dueDay);
-    if (defaultDueDate < new Date()) {
-        // Si la fecha ya pasó, usar el próximo mes
-        defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+    // Función para encontrar el próximo día de la semana
+    function getNextWeekday(targetDayOfWeek) {
+        const today = new Date();
+        const daysUntilTarget = (targetDayOfWeek - today.getDay() + 7) % 7;
+        const nextDate = new Date(today);
+        
+        if (daysUntilTarget === 0) {
+            // Si es el mismo día, usar el próximo
+            nextDate.setDate(today.getDate() + 7);
+        } else {
+            nextDate.setDate(today.getDate() + daysUntilTarget);
+        }
+        
+        return nextDate;
+    }
+    
+    // Función para encontrar el primer día de la semana en un mes específico
+    function getFirstWeekdayInMonth(year, month, targetDayOfWeek) {
+        const firstDay = new Date(year, month - 1, 1);
+        const daysUntilTarget = (targetDayOfWeek - firstDay.getDay() + 7) % 7;
+        const targetDate = new Date(firstDay);
+        targetDate.setDate(1 + daysUntilTarget);
+        return targetDate;
+    }
+    
+    // Calcular fecha de vencimiento por defecto
+    let defaultDueDate;
+    
+    if (frequency === 'weekly') {
+        // Para frecuencia semanal, usar días de la semana
+        defaultDueDate = getNextWeekday(dueDay);
+    } else {
+        // Para mensual y otras frecuencias, usar día del mes
+        defaultDueDate = new Date(currentYear, currentMonth - 1, dueDay);
+        if (defaultDueDate < new Date()) {
+            // Si la fecha ya pasó, usar el próximo mes
+            defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+        }
     }
     
     document.getElementById('due_date').value = defaultDueDate.toISOString().split('T')[0];
@@ -257,7 +291,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const month = document.getElementById('month').value;
         
         if (year && month) {
-            const dueDate = new Date(year, month - 1, dueDay);
+            let dueDate;
+            
+            if (frequency === 'weekly') {
+                // Para frecuencia semanal, usar días de la semana
+                dueDate = getNextWeekday(dueDay);
+            } else {
+                // Para mensual y otras frecuencias, usar día del mes
+                dueDate = new Date(year, month - 1, dueDay);
+            }
+            
             document.getElementById('due_date').value = dueDate.toISOString().split('T')[0];
         }
     }

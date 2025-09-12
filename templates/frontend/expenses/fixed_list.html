@@ -108,7 +108,27 @@
                                     <span class="badge bg-info">{{ expense.get_frequency_display }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning">{{ expense.due_day }}</span>
+                                    {% if expense.frequency == 'weekly' %}
+                                        {% if expense.due_day == 1 %}
+                                            <span class="badge bg-warning">Lunes</span>
+                                        {% elif expense.due_day == 2 %}
+                                            <span class="badge bg-warning">Martes</span>
+                                        {% elif expense.due_day == 3 %}
+                                            <span class="badge bg-warning">Miércoles</span>
+                                        {% elif expense.due_day == 4 %}
+                                            <span class="badge bg-warning">Jueves</span>
+                                        {% elif expense.due_day == 5 %}
+                                            <span class="badge bg-warning">Viernes</span>
+                                        {% elif expense.due_day == 6 %}
+                                            <span class="badge bg-warning">Sábado</span>
+                                        {% elif expense.due_day == 7 %}
+                                            <span class="badge bg-warning">Domingo</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{{ expense.due_day }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning">{{ expense.due_day }}</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if expense.is_active %}

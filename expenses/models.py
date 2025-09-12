@@ -34,6 +34,7 @@ class FixedExpense(BaseModel):
     )
 
     PAYMENT_FREQUENCY_CHOICES = (
+        ('weekly', _('Semanal')),
         ('monthly', _('Mensual')),
         ('quarterly', _('Trimestral')),
         ('biannual', _('Semestral')),
@@ -70,7 +71,9 @@ class FixedExpense(BaseModel):
     @property
     def monthly_amount(self):
         """Calcula el monto mensual basado en la frecuencia"""
-        if self.frequency == 'monthly':
+        if self.frequency == 'weekly':
+            return self.amount * 4.33  # Promedio de semanas por mes
+        elif self.frequency == 'monthly':
             return self.amount
         elif self.frequency == 'quarterly':
             return self.amount / 3
@@ -130,7 +133,7 @@ class MonthlyExpense(BaseModel):
         verbose_name = _("Gasto Mensual")
         verbose_name_plural = _("Gastos Mensuales")
         ordering = ["-year", "-month"]
-        unique_together = ['fixed_expense', 'year', 'month']
+        # Removido unique_together para permitir múltiples boletas por mes en gastos semanales
 
     def __str__(self):
         return f"{self.fixed_expense.name} - {self.month}/{self.year}"
