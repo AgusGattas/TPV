@@ -322,9 +322,13 @@
                         <div class="col-md-8">
                             <div class="position-relative">
                                 <input type="text" class="form-control form-control-lg" id="productSearch" 
-                                       placeholder="Buscar por nombre o código de barras..."
+                                       placeholder="Buscar por nombre o código de barras... (Enter para buscar inmediatamente)"
                                        onfocus="this.select()">
                                 <div class="search-results" id="searchResults"></div>
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Escribe y presiona Enter para buscar inmediatamente, o espera 2 segundos para búsqueda automática
+                                </small>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -541,7 +545,20 @@ document.getElementById('productSearch').addEventListener('input', function() {
     
     searchTimeout = setTimeout(() => {
         searchProducts(query);
-    }, 3000);
+    }, 2500);
+});
+
+// Búsqueda inmediata con Enter
+document.getElementById('productSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(searchTimeout); // Cancelar el timeout automático
+        const query = this.value.trim();
+        
+        if (query.length >= 2) {
+            searchProducts(query);
+        }
+    }
 });
 
 function searchProducts(query) {
