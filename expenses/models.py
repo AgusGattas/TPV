@@ -71,16 +71,17 @@ class FixedExpense(BaseModel):
     @property
     def monthly_amount(self):
         """Calcula el monto mensual basado en la frecuencia"""
+        from decimal import Decimal
         if self.frequency == 'weekly':
-            return self.amount * 4.33  # Promedio de semanas por mes
+            return self.amount * Decimal('4.33')  # Promedio de semanas por mes
         elif self.frequency == 'monthly':
             return self.amount
         elif self.frequency == 'quarterly':
-            return self.amount / 3
+            return self.amount / Decimal('3')
         elif self.frequency == 'biannual':
-            return self.amount / 6
+            return self.amount / Decimal('6')
         elif self.frequency == 'annual':
-            return self.amount / 12
+            return self.amount / Decimal('12')
         return self.amount
 
     @property
