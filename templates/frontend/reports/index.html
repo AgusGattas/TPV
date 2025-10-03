@@ -160,7 +160,7 @@
             <div class="stats-card success">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">{{ total_sales_count }}</div>
+                        <div class="stats-number" data-value="{{ total_sales_count }}">{{ total_sales_count }}</div>
                         <div class="stats-label">Total Ventas</div>
                     </div>
                     <div class="ms-3">
@@ -174,7 +174,7 @@
             <div class="stats-card info">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">${{ total_utility|floatformat:0 }}</div>
+                        <div class="stats-number" data-value="{{ total_utility }}">${{ total_utility|floatformat:0 }}</div>
                         <div class="stats-label">Total Utilidad</div>
                     </div>
                     <div class="ms-3">
@@ -188,7 +188,7 @@
             <div class="stats-card danger">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">${{ total_expenses|floatformat:0 }}</div>
+                        <div class="stats-number" data-value="{{ total_expenses }}">${{ total_expenses|floatformat:0 }}</div>
                         <div class="stats-label">Total Gastos</div>
                     </div>
                     <div class="ms-3">
@@ -225,25 +225,25 @@
                 <div class="row">
                     <div class="col-md-3">
                         <div class="text-center p-3 border-end">
-                            <div class="h4 text-success mb-1">${{ total_sales_revenue|floatformat:0 }}</div>
+                            <div class="h4 text-success mb-1" data-value="{{ total_sales_revenue }}">${{ total_sales_revenue|floatformat:0 }}</div>
                             <div class="text-muted small">Ingresos por Ventas</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-center p-3 border-end">
-                            <div class="h4 text-danger mb-1">${{ total_cmv|floatformat:0 }}</div>
+                            <div class="h4 text-danger mb-1" data-value="{{ total_cmv }}">${{ total_cmv|floatformat:0 }}</div>
                             <div class="text-muted small">Costo Mercadería Vendida</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-center p-3 border-end">
-                            <div class="h4 text-warning mb-1">${{ total_expenses|floatformat:0 }}</div>
+                            <div class="h4 text-warning mb-1" data-value="{{ total_expenses }}">${{ total_expenses|floatformat:0 }}</div>
                             <div class="text-muted small">Gastos Operativos</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-center p-3">
-                            <div class="h4 text-info mb-1">${{ total_utility|floatformat:0 }}</div>
+                            <div class="h4 text-info mb-1" data-value="{{ total_utility }}">${{ total_utility|floatformat:0 }}</div>
                             <div class="text-muted small">Utilidad Neta</div>
                         </div>
                     </div>
@@ -333,8 +333,8 @@
                                 <td class="text-center">
                                     <span class="badge bg-primary">{{ product.total_quantity }}</span>
                                 </td>
-                                <td class="text-end fw-bold">${{ product.total_revenue|floatformat:0 }}</td>
-                                <td class="text-end text-muted">${{ product.average_price|floatformat:0 }}</td>
+                                <td class="text-end fw-bold" data-value="{{ product.total_revenue }}">${{ product.total_revenue|floatformat:0 }}</td>
+                                <td class="text-end text-muted" data-value="{{ product.average_price }}">${{ product.average_price|floatformat:0 }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -381,7 +381,7 @@
                                 <td class="text-center">
                                     <span class="badge bg-secondary">{{ payment.count }}</span>
                                 </td>
-                                <td class="text-end fw-bold">${{ payment.total|floatformat:0 }}</td>
+                                <td class="text-end fw-bold" data-value="{{ payment.total }}">${{ payment.total|floatformat:0 }}</td>
                                 <td class="text-end text-muted">
                                     {{ payment.percentage|floatformat:1 }}%
                                 </td>
@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 label: function(context) {
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                    return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                    return context.label + ': $' + context.parsed.toLocaleString('es-AR') + ' (' + percentage + '%)';
                                 }
                             }
                         }
@@ -656,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         displayColors: false,
                         callbacks: {
                             label: function(context) {
-                                return 'Ventas: $' + context.parsed.y.toLocaleString();
+                                return 'Ventas: $' + context.parsed.y.toLocaleString('es-AR');
                             }
                         }
                     }
@@ -685,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 size: 12
                             },
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '$' + value.toLocaleString('es-AR');
                             }
                         }
                     }
@@ -693,6 +693,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// Función para formatear números con punto como separador de miles
+function formatNumberWithDots(value) {
+    if (value === null || value === undefined || value === '') return '';
+    
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    
+    // Formatear con punto como separador de miles
+    return num.toLocaleString('es-AR');
+}
+
+// Aplicar formato a todos los elementos con data-value
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = document.querySelectorAll('[data-value]');
+    elements.forEach(function(element) {
+        const value = element.getAttribute('data-value');
+        const formattedValue = formatNumberWithDots(value);
+        
+        // Si el elemento contiene un $, mantenerlo
+        if (element.textContent.includes('$')) {
+            element.textContent = '$' + formattedValue;
+        } else {
+            element.textContent = formattedValue;
+        }
+    });
 });
 </script>
 {% endblock %} 

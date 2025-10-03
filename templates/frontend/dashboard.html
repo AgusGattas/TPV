@@ -94,7 +94,7 @@
             <div class="stats-card success">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">${{ total_revenue_today|floatformat:0 }}</div>
+                        <div class="stats-number" data-value="{{ total_revenue_today }}">${{ total_revenue_today|floatformat:0 }}</div>
                         <div class="stats-label">Ventas de Hoy</div>
                     </div>
                     <div class="ms-3">
@@ -108,7 +108,7 @@
             <div class="stats-card info">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">{{ total_sales_today }}</div>
+                        <div class="stats-number" data-value="{{ total_sales_today }}">{{ total_sales_today }}</div>
                         <div class="stats-label">Transacciones Hoy</div>
                     </div>
                     <div class="ms-3">
@@ -122,7 +122,7 @@
             <div class="stats-card">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">{{ total_products }}</div>
+                        <div class="stats-number" data-value="{{ total_products }}">{{ total_products }}</div>
                         <div class="stats-label">Productos Activos</div>
                     </div>
                     <div class="ms-3">
@@ -136,7 +136,7 @@
             <div class="stats-card warning">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <div class="stats-number">{{ low_stock_products }}</div>
+                        <div class="stats-number" data-value="{{ low_stock_products }}">{{ low_stock_products }}</div>
                         <div class="stats-label">Stock Bajo</div>
                     </div>
                     <div class="ms-3">
@@ -176,11 +176,11 @@
                     <div class="row text-center">
                         <div class="col-6">
                             <div class="text-muted small">Efectivo Inicial</div>
-                            <div class="h5 mb-0">${{ current_cashbox.initial_cash|floatformat:0 }}</div>
+                            <div class="h5 mb-0" data-value="{{ current_cashbox.initial_cash }}">${{ current_cashbox.initial_cash|floatformat:0 }}</div>
                         </div>
                         <div class="col-6">
                             <div class="text-muted small">Ventas</div>
-                            <div class="h5 mb-0">${{ current_cashbox.total_sales|floatformat:0 }}</div>
+                            <div class="h5 mb-0" data-value="{{ current_cashbox.total_sales }}">${{ current_cashbox.total_sales|floatformat:0 }}</div>
                         </div>
                     </div>
                     
@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayColors: false,
                     callbacks: {
                         label: function(context) {
-                            return 'Ventas: $' + context.parsed.y.toLocaleString();
+                            return 'Ventas: $' + context.parsed.y.toLocaleString('es-AR');
                         }
                     }
                 }
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             size: 12
                         },
                         callback: function(value) {
-                            return '$' + value.toLocaleString();
+                            return '$' + value.toLocaleString('es-AR');
                         }
                     }
                 }
@@ -390,6 +390,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     hoverBackgroundColor: '#667eea'
                 }
             }
+        }
+    });
+});
+
+// Función para formatear números con punto como separador de miles
+function formatNumberWithDots(value) {
+    if (value === null || value === undefined || value === '') return '';
+    
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    
+    // Formatear con punto como separador de miles
+    return num.toLocaleString('es-AR');
+}
+
+// Aplicar formato a todos los elementos con data-value
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = document.querySelectorAll('[data-value]');
+    elements.forEach(function(element) {
+        const value = element.getAttribute('data-value');
+        const formattedValue = formatNumberWithDots(value);
+        
+        // Si el elemento contiene un $, mantenerlo
+        if (element.textContent.includes('$')) {
+            element.textContent = '$' + formattedValue;
+        } else {
+            element.textContent = formattedValue;
         }
     });
 });
