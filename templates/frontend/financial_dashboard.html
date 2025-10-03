@@ -285,7 +285,7 @@
         </div>
     </div>
 
-    <!-- Pendientes -->
+    <!-- Pendientes de Pago -->
     <div class="section-card">
         <h4 class="mb-3">
             <i class="fas fa-clock me-2"></i>
@@ -303,8 +303,34 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-danger">${{ pending_expenses|floatformat:0 }}</h5>
+                        <h5 class="card-title text-warning">${{ pending_expenses|floatformat:0 }}</h5>
                         <p class="card-text">Gastos Fijos Pendientes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vencidos -->
+    <div class="section-card">
+        <h4 class="mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Vencidos
+        </h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-danger">${{ overdue_invoices_amount|floatformat:0 }}</h5>
+                        <p class="card-text">Facturas de Proveedores Vencidas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-danger">${{ overdue_expenses_amount|floatformat:0 }}</h5>
+                        <p class="card-text">Gastos Fijos Vencidos</p>
                     </div>
                 </div>
             </div>

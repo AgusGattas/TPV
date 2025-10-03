@@ -1679,23 +1679,36 @@ def financial_dashboard(request):
     
     # ===== ESTADÍSTICAS ADICIONALES =====
     
-    # Facturas pendientes de pago
+    # Facturas pendientes de pago (aún no vencidas)
     pending_invoices = SupplierInvoice.objects.filter(
-        is_paid=False
+        is_paid=False,
+        due_date__gte=timezone.now().date()  # Solo las que aún no vencieron
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     
-    # Gastos fijos pendientes
+    # Gastos fijos pendientes (aún no vencidos)
     pending_expenses = MonthlyExpense.objects.filter(
+        is_paid=False,
+        due_date__gte=timezone.now().date()  # Solo los que aún no vencieron
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Gastos vencidos (montos)
+    overdue_expenses_amount = MonthlyExpense.objects.filter(
+        due_date__lt=timezone.now().date(),
         is_paid=False
     ).aggregate(total=Sum('amount'))['total'] or 0
     
-    # Gastos vencidos
-    overdue_expenses = MonthlyExpense.objects.filter(
+    overdue_invoices_amount = SupplierInvoice.objects.filter(
+        due_date__lt=timezone.now().date(),
+        is_paid=False
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Cantidad de vencidos (para estadísticas adicionales)
+    overdue_expenses_count = MonthlyExpense.objects.filter(
         due_date__lt=timezone.now().date(),
         is_paid=False
     ).count()
     
-    overdue_invoices = SupplierInvoice.objects.filter(
+    overdue_invoices_count = SupplierInvoice.objects.filter(
         due_date__lt=timezone.now().date(),
         is_paid=False
     ).count()
@@ -1728,8 +1741,14 @@ def financial_dashboard(request):
         # Pendientes
         'pending_invoices': pending_invoices,
         'pending_expenses': pending_expenses,
-        'overdue_expenses': overdue_expenses,
-        'overdue_invoices': overdue_invoices,
+        
+        # Vencidos (montos)
+        'overdue_invoices_amount': overdue_invoices_amount,
+        'overdue_expenses_amount': overdue_expenses_amount,
+        
+        # Vencidos (cantidades)
+        'overdue_expenses_count': overdue_expenses_count,
+        'overdue_invoices_count': overdue_invoices_count,
     }
     
     return render(request, 'frontend/financial_dashboard.html', context) 
