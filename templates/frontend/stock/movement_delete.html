@@ -1,0 +1,181 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Eliminar Movimiento de Stock - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-trash-alt text-danger"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Eliminar Movimiento de Stock</h1>
+                <div class="title-subtitle">
+                    Confirmar eliminación y reversión del movimiento
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de confirmación -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡Atención!</strong> Esta acción revertirá completamente el impacto del movimiento en el stock y no se puede deshacer.
+                    </div>
+
+                    <!-- Información del movimiento -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Información del Movimiento
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Producto:</strong><br>
+                                    <span class="text-primary">{{ product.name }}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Tipo de Movimiento:</strong><br>
+                                    <span class="badge {% if movement.type == 'ingreso' %}bg-success{% elif movement.type == 'egreso' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ movement.get_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <strong>Cantidad:</strong><br>
+                                    <span class="fw-bold">{{ movement.quantity }} unidades</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Precio de Costo:</strong><br>
+                                    <span class="fw-bold">${{ movement.cost_price|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <strong>Motivo:</strong><br>
+                                    <span class="text-muted">{{ movement.reason }}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Fecha:</strong><br>
+                                    <span class="text-muted">{{ movement.created_at|date:"d/m/Y H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado actual del stock -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-boxes me-2"></i>
+                                Estado Actual del Stock
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Stock Actual:</strong><br>
+                                    <span class="fw-bold text-primary">{{ stock.current_quantity }} unidades</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Costo Promedio Actual:</strong><br>
+                                    <span class="fw-bold text-success">${{ stock.average_cost|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Impacto de la reversión -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-undo me-2"></i>
+                                Impacto de la Reversión
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if movement.type == 'ingreso' %}
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Reversión de Ingreso:</strong><br>
+                                <ul class="mb-0 mt-2">
+                                    <li>Se reducirá el stock en <strong>{{ movement.quantity }} unidades</strong></li>
+                                    <li>Se recalculará el costo promedio del producto</li>
+                                    <li>El stock quedará en <strong>{{ stock.current_quantity|add:"-"|add:movement.quantity }} unidades</strong></li>
+                                </ul>
+                            </div>
+                            {% elif movement.type == 'egreso' %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-arrow-up me-2"></i>
+                                <strong>Reversión de Egreso:</strong><br>
+                                <ul class="mb-0 mt-2">
+                                    <li>Se aumentará el stock en <strong>{{ movement.quantity }} unidades</strong></li>
+                                    <li>El costo promedio no cambiará</li>
+                                    <li>El stock quedará en <strong>{{ stock.current_quantity|add:movement.quantity }} unidades</strong></li>
+                                </ul>
+                            </div>
+                            {% elif movement.type == 'devolucion' %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-arrow-up me-2"></i>
+                                <strong>Reversión de Devolución:</strong><br>
+                                <ul class="mb-0 mt-2">
+                                    <li>Se aumentará el stock en <strong>{{ movement.quantity }} unidades</strong></li>
+                                    <li>El costo promedio no cambiará</li>
+                                    <li>El stock quedará en <strong>{{ stock.current_quantity|add:movement.quantity }} unidades</strong></li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Verificación de restricciones -->
+                    {% if movement.sale %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>No se puede eliminar este movimiento</strong><br>
+                        <small>Este movimiento está asociado a una venta. Debe eliminar la venta primero para poder eliminar este movimiento.</small>
+                    </div>
+                    {% elif movement.type == 'ingreso' and stock.current_quantity < movement.quantity %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>No se puede revertir este movimiento</strong><br>
+                        <small>El stock actual ({{ stock.current_quantity }}) es menor que la cantidad del movimiento ({{ movement.quantity }}). No se puede revertir este ingreso.</small>
+                    </div>
+                    {% endif %}
+
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'frontend:stock_movements' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver a Movimientos
+                        </a>
+                        
+                        {% if not movement.sale and not movement.type == 'ingreso' or movement.type == 'ingreso' and stock.current_quantity >= movement.quantity %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ ADVERTENCIA: Esta acción eliminará PERMANENTEMENTE este movimiento y revertirá su impacto en el stock del producto "{{ product.name }}". Esta acción NO se puede deshacer.\\n\\n¿Está completamente seguro de continuar?')">
+                                <i class="fas fa-trash-alt me-2"></i>Eliminar y Revertir
+                            </button>
+                        </form>
+                        {% else %}
+                        <button type="button" class="btn btn-danger" disabled>
+                            <i class="fas fa-trash-alt me-2"></i>No se puede eliminar
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

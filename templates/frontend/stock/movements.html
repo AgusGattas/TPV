@@ -1,0 +1,185 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Movimientos de Stock - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Movimientos de Stock</h1>
+                <div class="title-subtitle">
+                    Historial de todos los movimientos de stock
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="type" class="form-label">Tipo de Movimiento</label>
+                    <select class="form-select" id="type" name="type">
+                        <option value="">Todos</option>
+                        <option value="ingreso" {% if movement_type == 'ingreso' %}selected{% endif %}>Ingreso</option>
+                        <option value="egreso" {% if movement_type == 'egreso' %}selected{% endif %}>Egreso</option>
+                        <option value="devolucion" {% if movement_type == 'devolucion' %}selected{% endif %}>Devolución</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date_from" class="form-label">Fecha Desde</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="date_to" class="form-label">Fecha Hasta</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Filtrar
+                        </button>
+                        <a href="{% url 'frontend:stock_movements' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de movimientos -->
+    {% if movements %}
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Precio de Costo</th>
+                                <th>Motivo</th>
+                                <th>Venta Asociada</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movement in movements %}
+                            <tr>
+                                <td>
+                                    <span class="text-muted">{{ movement.created_at|date:"d/m/Y H:i" }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3">
+                                            <div class="avatar-title bg-primary rounded-circle">
+                                                <i class="fas fa-box"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ movement.stock.product.name }}</h6>
+                                            <small class="text-muted">{{ movement.stock.product.barcode }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if movement.type == 'ingreso' %}bg-success{% elif movement.type == 'egreso' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ movement.get_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold {% if movement.type == 'ingreso' %}text-success{% elif movement.type == 'egreso' %}text-danger{% else %}text-warning{% endif %}">
+                                        {% if movement.type == 'ingreso' %}+{% elif movement.type == 'egreso' %}-{% else %}-{% endif %}{{ movement.quantity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">${{ movement.cost_price|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ movement.reason }}</span>
+                                </td>
+                                <td>
+                                    {% if movement.sale %}
+                                        <a href="{% url 'frontend:sale_detail' movement.sale.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-receipt me-1"></i>Ver Venta
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_admin and not movement.sale %}
+                                    <a href="{% url 'frontend:stock_movement_delete' movement.pk %}" 
+                                       class="btn btn-sm btn-outline-danger" title="Eliminar Movimiento">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                    {% elif movement.sale %}
+                                    <span class="text-muted" title="No se puede eliminar - asociado a venta">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Paginación de movimientos" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if movement_type %}&type={{ movement_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if movement_type %}&type={{ movement_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Anterior</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if movement_type %}&type={{ movement_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if movement_type %}&type={{ movement_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Última</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay movimientos de stock</h5>
+                <p class="text-muted">No se encontraron movimientos con los filtros aplicados.</p>
+                <a href="{% url 'frontend:stock_movements' %}" class="btn btn-primary">
+                    <i class="fas fa-refresh me-2"></i>Ver Todos los Movimientos
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

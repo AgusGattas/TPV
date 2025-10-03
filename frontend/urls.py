@@ -36,6 +36,7 @@ urlpatterns = [
     # Stock
     path('stock/', views.stock_list, name='stock_list'),
     path('stock/movimientos/', views.stock_movements, name='stock_movements'),
+    path('stock/movimientos/<int:pk>/eliminar/', views.stock_movement_delete, name='stock_movement_delete'),
     path('stock/<int:pk>/agregar/', views.add_stock, name='add_stock'),
     
     # Caja

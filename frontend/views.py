@@ -710,6 +710,111 @@ def stock_movements(request):
 
 
 @login_required
+def stock_movement_delete(request, pk):
+    """Eliminar un movimiento de stock y revertir su impacto"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para realizar esta acción')
+        return redirect('frontend:stock_movements')
+    
+    movement = get_object_or_404(StockMovement, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Obtener información antes de eliminar para el mensaje
+                product_name = movement.stock.product.name
+                movement_type = movement.get_type_display()
+                quantity = movement.quantity
+                cost_price = movement.cost_price
+                reason = movement.reason
+                
+                # Verificar si el movimiento está asociado a una venta
+                if movement.sale:
+                    messages.error(request, f'No se puede eliminar este movimiento porque está asociado a una venta. Debe eliminar la venta primero.')
+                    # Redirigir según el parámetro from
+                    from_param = request.GET.get('from')
+                    if from_param == 'product_detail':
+                        product_id = request.GET.get('product_id', movement.stock.product.pk)
+                        return redirect('frontend:product_detail', pk=product_id)
+                    else:
+                        return redirect('frontend:stock_movements')
+                
+                # Revertir el impacto en el stock
+                stock = movement.stock
+                
+                if movement.type == 'ingreso':
+                    # Revertir ingreso: reducir cantidad y recalcular costo promedio
+                    if stock.current_quantity < movement.quantity:
+                        messages.error(request, f'No se puede revertir este movimiento. El stock actual ({stock.current_quantity}) es menor que la cantidad del movimiento ({movement.quantity}).')
+                        # Redirigir según el parámetro from
+                        from_param = request.GET.get('from')
+                        if from_param == 'product_detail':
+                            product_id = request.GET.get('product_id', movement.stock.product.pk)
+                            return redirect('frontend:product_detail', pk=product_id)
+                        else:
+                            return redirect('frontend:stock_movements')
+                    
+                    # Calcular el costo promedio anterior
+                    total_cost_before = (stock.current_quantity * stock.average_cost) - (movement.quantity * movement.cost_price)
+                    total_quantity_before = stock.current_quantity - movement.quantity
+                    
+                    if total_quantity_before > 0:
+                        stock.average_cost = total_cost_before / total_quantity_before
+                    else:
+                        stock.average_cost = 0
+                    
+                    stock.current_quantity = total_quantity_before
+                    
+                elif movement.type == 'egreso':
+                    # Revertir egreso: aumentar cantidad
+                    stock.current_quantity += movement.quantity
+                    # El costo promedio no cambia para egresos
+                    
+                elif movement.type == 'devolucion':
+                    # Revertir devolución: aumentar cantidad
+                    stock.current_quantity += movement.quantity
+                    # El costo promedio no cambia para devoluciones
+                
+                # Guardar los cambios en el stock
+                stock.save()
+                
+                # Eliminar el movimiento
+                movement.delete()
+                
+                # Mensaje de éxito
+                messages.success(request, f'Movimiento de {movement_type} eliminado exitosamente. Se revirtió el impacto en el stock del producto "{product_name}".')
+                
+                # Redirigir según el parámetro from
+                from_param = request.GET.get('from')
+                if from_param == 'product_detail':
+                    product_id = request.GET.get('product_id', movement.stock.product.pk)
+                    return redirect('frontend:product_detail', pk=product_id)
+                else:
+                    return redirect('frontend:stock_movements')
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el movimiento: {str(e)}')
+            # Redirigir según el parámetro from
+            from_param = request.GET.get('from')
+            if from_param == 'product_detail':
+                product_id = request.GET.get('product_id', movement.stock.product.pk)
+                return redirect('frontend:product_detail', pk=product_id)
+            else:
+                return redirect('frontend:stock_movements')
+    
+    # Obtener información para mostrar en la confirmación
+    context = {
+        'movement': movement,
+        'product': movement.stock.product,
+        'stock': movement.stock,
+    }
+    
+    return render(request, 'frontend/stock/movement_delete.html', context)
+
+
+@login_required
 def add_stock(request, pk):
     """Agregar stock a un producto"""
     
