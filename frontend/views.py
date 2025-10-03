@@ -2593,6 +2593,60 @@ def supplier_payment_delete(request, supplier_pk, payment_pk):
 
 
 @login_required
+def fixed_expense_delete(request, pk):
+    """Eliminar un gasto fijo"""
+    if not request.user.is_admin:
+        messages.error(request, 'No tienes permisos para realizar esta acción')
+        return redirect('frontend:expense_fixed_list')
+    
+    fixed_expense = get_object_or_404(FixedExpense, pk=pk, is_active=True)
+    
+    if request.method == 'POST':
+        try:
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Obtener información antes de eliminar para el mensaje
+                bills_count = MonthlyExpense.objects.filter(fixed_expense=fixed_expense).count()
+                payments_count = ExpensePayment.objects.filter(monthly_expense__fixed_expense=fixed_expense).count()
+                expense_name = fixed_expense.name
+                
+                # Eliminar todos los pagos asociados primero
+                ExpensePayment.objects.filter(monthly_expense__fixed_expense=fixed_expense).delete()
+                
+                # Eliminar todas las boletas asociadas
+                MonthlyExpense.objects.filter(fixed_expense=fixed_expense).delete()
+                
+                # Finalmente eliminar el gasto fijo completamente
+                fixed_expense.delete()
+                
+                # Mensaje de éxito con información de lo eliminado
+                message = f'Gasto fijo "{expense_name}" eliminado completamente'
+                if bills_count > 0 or payments_count > 0:
+                    message += f' junto con {bills_count} boleta{"s" if bills_count != 1 else ""} y {payments_count} pago{"s" if payments_count != 1 else ""} asociado{"s" if (bills_count + payments_count) != 1 else ""}'
+                message += '.'
+                
+                messages.success(request, message)
+                return redirect('frontend:expenses_fixed_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el gasto fijo: {str(e)}')
+            return redirect('frontend:expenses_fixed_list')
+    
+    # Obtener información para mostrar en la confirmación
+    bills_count = MonthlyExpense.objects.filter(fixed_expense=fixed_expense).count()
+    payments_count = ExpensePayment.objects.filter(monthly_expense__fixed_expense=fixed_expense).count()
+    
+    context = {
+        'fixed_expense': fixed_expense,
+        'bills_count': bills_count,
+        'payments_count': payments_count,
+    }
+    
+    return render(request, 'frontend/expenses/fixed_delete.html', context)
+
+
+@login_required
 def fixed_expense_account_status(request, pk):
     """Estado de cuenta de un gasto fijo"""
     if not request.user.is_admin:
@@ -2692,46 +2746,100 @@ def expense_payment_create(request, expense_pk):
             # Validaciones básicas
             if not amount or not payment_date or not payment_method:
                 messages.error(request, 'Todos los campos obligatorios deben estar completos')
+                # Buscar el período más apropiado para mostrar en el template
+                current_date = datetime.now()
+                
+                # Buscar primero las boletas vencidas (prioridad máxima)
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False,
+                    due_date__lt=current_date.date()
+                ).order_by('due_date').first()
+                
+                # Si no hay boletas vencidas, buscar el período actual
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        year=current_year,
+                        month=current_month,
+                        is_paid=False
+                    ).first()
+                
+                # Si no hay período actual con pendiente, buscar el más próximo
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                
                 return render(request, 'frontend/expenses/payment_create.html', {
                     'fixed_expense': fixed_expense,
                     'pending_info': {
                         'current_month': current_month,
                         'current_year': current_year,
-                        'next_pending_expense': MonthlyExpense.objects.filter(
-                            fixed_expense=fixed_expense,
-                            is_paid=False
-                        ).order_by('year', 'month').first()
+                        'next_pending_expense': next_pending_expense
                     }
                 })
             
             # Validar que el monto sea mayor a cero
             if float(amount) <= 0:
                 messages.error(request, 'El monto del pago debe ser mayor a cero')
+                # Buscar el período más apropiado para mostrar en el template
+                current_date = datetime.now()
+                
+                # Buscar primero las boletas vencidas (prioridad máxima)
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False,
+                    due_date__lt=current_date.date()
+                ).order_by('due_date').first()
+                
+                # Si no hay boletas vencidas, buscar el período actual
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        year=current_year,
+                        month=current_month,
+                        is_paid=False
+                    ).first()
+                
+                # Si no hay período actual con pendiente, buscar el más próximo
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                
                 return render(request, 'frontend/expenses/payment_create.html', {
                     'fixed_expense': fixed_expense,
                     'pending_info': {
                         'current_month': current_month,
                         'current_year': current_year,
-                        'next_pending_expense': MonthlyExpense.objects.filter(
-                            fixed_expense=fixed_expense,
-                            is_paid=False
-                        ).order_by('year', 'month').first()
+                        'next_pending_expense': next_pending_expense
                     }
                 })
             
             # Buscar el período más apropiado para asignar el pago
-            # Priorizar el período actual o el más próximo con monto pendiente
+            # Priorizar las boletas vencidas, luego el período actual, luego el más próximo
             current_date = datetime.now()
             current_year = current_date.year
             current_month = current_date.month
             
-            # Buscar primero el período actual
+            # Buscar primero las boletas vencidas (prioridad máxima)
             expense = MonthlyExpense.objects.filter(
                 fixed_expense=fixed_expense,
-                year=current_year,
-                month=current_month,
-                is_paid=False
-            ).first()
+                is_paid=False,
+                due_date__lt=current_date.date()
+            ).order_by('due_date').first()
+            
+            # Si no hay boletas vencidas, buscar el período actual
+            if not expense:
+                expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    year=current_year,
+                    month=current_month,
+                    is_paid=False
+                ).first()
             
             # Si no hay período actual con pendiente, buscar el más próximo
             if not expense:
@@ -2743,45 +2851,114 @@ def expense_payment_create(request, expense_pk):
             # Si no hay ningún período con pendiente, mostrar error
             if not expense:
                 messages.error(request, 'No hay períodos pendientes de pago para este gasto fijo')
+                # Buscar el período más apropiado para mostrar en el template
+                current_date = datetime.now()
+                
+                # Buscar primero las boletas vencidas (prioridad máxima)
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False,
+                    due_date__lt=current_date.date()
+                ).order_by('due_date').first()
+                
+                # Si no hay boletas vencidas, buscar el período actual
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        year=current_year,
+                        month=current_month,
+                        is_paid=False
+                    ).first()
+                
+                # Si no hay período actual con pendiente, buscar el más próximo
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                
                 return render(request, 'frontend/expenses/payment_create.html', {
                     'fixed_expense': fixed_expense,
                     'pending_info': {
                         'current_month': current_month,
                         'current_year': current_year,
-                        'next_pending_expense': MonthlyExpense.objects.filter(
-                            fixed_expense=fixed_expense,
-                            is_paid=False
-                        ).order_by('year', 'month').first()
+                        'next_pending_expense': next_pending_expense
                     }
                 })
             
             # Verificar que el período tenga monto pendiente
             if expense.remaining_amount <= 0:
                 messages.error(request, f'El período {expense.get_month_display()} {expense.year} ya está completamente pagado')
+                # Buscar el período más apropiado para mostrar en el template
+                current_date = datetime.now()
+                
+                # Buscar primero las boletas vencidas (prioridad máxima)
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False,
+                    due_date__lt=current_date.date()
+                ).order_by('due_date').first()
+                
+                # Si no hay boletas vencidas, buscar el período actual
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        year=current_year,
+                        month=current_month,
+                        is_paid=False
+                    ).first()
+                
+                # Si no hay período actual con pendiente, buscar el más próximo
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                
                 return render(request, 'frontend/expenses/payment_create.html', {
                     'fixed_expense': fixed_expense,
                     'pending_info': {
                         'current_month': current_month,
                         'current_year': current_year,
-                        'next_pending_expense': MonthlyExpense.objects.filter(
-                            fixed_expense=fixed_expense,
-                            is_paid=False
-                        ).order_by('year', 'month').first()
+                        'next_pending_expense': next_pending_expense
                     }
                 })
             
             # Validar que el monto del pago no exceda el monto pendiente
             if float(amount) > float(expense.remaining_amount):
                 messages.error(request, f'El monto del pago (${amount}) no puede exceder el monto pendiente (${expense.remaining_amount}) del período {expense.get_month_display()} {expense.year}')
+                # Buscar el período más apropiado para mostrar en el template
+                current_date = datetime.now()
+                
+                # Buscar primero las boletas vencidas (prioridad máxima)
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False,
+                    due_date__lt=current_date.date()
+                ).order_by('due_date').first()
+                
+                # Si no hay boletas vencidas, buscar el período actual
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        year=current_year,
+                        month=current_month,
+                        is_paid=False
+                    ).first()
+                
+                # Si no hay período actual con pendiente, buscar el más próximo
+                if not next_pending_expense:
+                    next_pending_expense = MonthlyExpense.objects.filter(
+                        fixed_expense=fixed_expense,
+                        is_paid=False
+                    ).order_by('year', 'month').first()
+                
                 return render(request, 'frontend/expenses/payment_create.html', {
                     'fixed_expense': fixed_expense,
                     'pending_info': {
                         'current_month': current_month,
                         'current_year': current_year,
-                        'next_pending_expense': MonthlyExpense.objects.filter(
-                            fixed_expense=fixed_expense,
-                            is_paid=False
-                        ).order_by('year', 'month').first()
+                        'next_pending_expense': next_pending_expense
                     }
                 })
             
@@ -2803,27 +2980,74 @@ def expense_payment_create(request, expense_pk):
             
         except Exception as e:
             messages.error(request, f'Error al registrar el pago: {str(e)}')
+            # Buscar el período más apropiado para mostrar en el template
+            current_date = datetime.now()
+            
+            # Buscar primero las boletas vencidas (prioridad máxima)
+            next_pending_expense = MonthlyExpense.objects.filter(
+                fixed_expense=fixed_expense,
+                is_paid=False,
+                due_date__lt=current_date.date()
+            ).order_by('due_date').first()
+            
+            # Si no hay boletas vencidas, buscar el período actual
+            if not next_pending_expense:
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    year=current_year,
+                    month=current_month,
+                    is_paid=False
+                ).first()
+            
+            # Si no hay período actual con pendiente, buscar el más próximo
+            if not next_pending_expense:
+                next_pending_expense = MonthlyExpense.objects.filter(
+                    fixed_expense=fixed_expense,
+                    is_paid=False
+                ).order_by('year', 'month').first()
+            
             return render(request, 'frontend/expenses/payment_create.html', {
                 'fixed_expense': fixed_expense,
                 'pending_info': {
                     'current_month': current_month,
                     'current_year': current_year,
-                    'next_pending_expense': MonthlyExpense.objects.filter(
-                        fixed_expense=fixed_expense,
-                        is_paid=False
-                    ).order_by('year', 'month').first()
+                    'next_pending_expense': next_pending_expense
                 }
             })
+    
+    # Buscar el período más apropiado para mostrar en el template
+    # Priorizar las boletas vencidas, luego el período actual, luego el más próximo
+    current_date = datetime.now()
+    
+    # Buscar primero las boletas vencidas (prioridad máxima)
+    next_pending_expense = MonthlyExpense.objects.filter(
+        fixed_expense=fixed_expense,
+        is_paid=False,
+        due_date__lt=current_date.date()
+    ).order_by('due_date').first()
+    
+    # Si no hay boletas vencidas, buscar el período actual
+    if not next_pending_expense:
+        next_pending_expense = MonthlyExpense.objects.filter(
+            fixed_expense=fixed_expense,
+            year=current_year,
+            month=current_month,
+            is_paid=False
+        ).first()
+    
+    # Si no hay período actual con pendiente, buscar el más próximo
+    if not next_pending_expense:
+        next_pending_expense = MonthlyExpense.objects.filter(
+            fixed_expense=fixed_expense,
+            is_paid=False
+        ).order_by('year', 'month').first()
     
     return render(request, 'frontend/expenses/payment_create.html', {
         'fixed_expense': fixed_expense,
         'pending_info': {
             'current_month': current_month,
             'current_year': current_year,
-            'next_pending_expense': MonthlyExpense.objects.filter(
-                fixed_expense=fixed_expense,
-                is_paid=False
-            ).order_by('year', 'month').first()
+            'next_pending_expense': next_pending_expense
         }
     })
 

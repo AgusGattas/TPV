@@ -78,6 +78,7 @@ urlpatterns = [
     path('costos-fijos/crear/', views.expense_fixed_create, name='expense_fixed_create'),
     path('costos-fijos/<int:pk>/', views.expense_fixed_detail_redirect, name='expense_fixed_detail'),
     path('costos-fijos/<int:pk>/estado-cuenta/', views.fixed_expense_account_status, name='fixed_expense_account_status'),
+    path('costos-fijos/<int:pk>/eliminar/', views.fixed_expense_delete, name='fixed_expense_delete'),
     path('costos-fijos/<int:expense_pk>/boletas/', views.expense_bills_list_redirect, name='expense_bills_list'),
     path('costos-fijos/<int:expense_pk>/boletas/crear/', views.expense_bill_create, name='expense_bill_create'),
     path('costos-fijos/<int:expense_pk>/boletas/<int:bill_pk>/editar/', views.expense_bill_edit, name='expense_bill_edit'),
