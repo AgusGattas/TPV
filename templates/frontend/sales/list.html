@@ -552,6 +552,11 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printSale({{ sale.id }})" title="Imprimir">
                         <i class="fas fa-print"></i>
                     </button>
+                    {% if sale.cashbox.is_open and sale.user == user or user.is_admin %}
+                    <a href="{% url 'frontend:sale_delete' sale.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar venta">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

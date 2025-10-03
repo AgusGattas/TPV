@@ -464,6 +464,46 @@ def sale_detail(request, pk):
 
 
 @login_required
+def sale_delete(request, pk):
+    """Eliminar una venta y revertir todos los cambios"""
+    sale = get_object_or_404(Sale, pk=pk, is_active=True)
+    
+    # Verificar que el usuario tenga permisos para eliminar la venta
+    # Solo el usuario que creó la venta o un admin puede eliminarla
+    if not (sale.user == request.user or request.user.is_admin):
+        messages.error(request, 'No tienes permisos para eliminar esta venta')
+        return redirect('frontend:sales_list')
+    
+    # Verificar que la caja esté abierta
+    if not sale.cashbox.is_open:
+        messages.error(request, 'No se puede eliminar una venta de una caja cerrada')
+        return redirect('frontend:sales_list')
+    
+    if request.method == 'POST':
+        try:
+            # Eliminar la venta y revertir todos los cambios
+            sale.delete_sale()
+            
+            messages.success(
+                request, 
+                f'Venta #{sale.id} eliminada exitosamente. '
+                f'Se ha revertido el stock y todos los cambios relacionados.'
+            )
+            return redirect('frontend:sales_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error al eliminar la venta: {str(e)}')
+            return redirect('frontend:sale_detail', pk=pk)
+    
+    # Mostrar confirmación
+    context = {
+        'sale': sale,
+    }
+    
+    return render(request, 'frontend/sales/delete.html', context)
+
+
+@login_required
 def sale_create(request):
     """Crear nueva venta"""
     from decimal import Decimal
