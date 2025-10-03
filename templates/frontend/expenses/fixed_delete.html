@@ -1,0 +1,124 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block page_title %}Eliminar Gasto Fijo - TodoBrilla{% endblock %}
+
+{% block frontend_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="page-main-title">
+        <div class="title-container">
+            <div class="title-icon">
+                <i class="fas fa-trash-alt text-danger"></i>
+            </div>
+            <div class="title-content">
+                <h1 class="mb-1">Eliminar Gasto Fijo</h1>
+                <div class="title-subtitle">
+                    Confirmar eliminación de gasto fijo
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de confirmación -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+                    </div>
+
+                    <!-- Información del gasto fijo -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Información del Gasto Fijo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nombre:</strong><br>
+                                    <span class="text-primary">{{ fixed_expense.name }}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Monto:</strong><br>
+                                    <span class="fw-bold">${{ fixed_expense.amount|floatformat:0 }}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <strong>Frecuencia:</strong><br>
+                                    <span class="badge bg-primary">{{ fixed_expense.get_frequency_display }}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Día de Vencimiento:</strong><br>
+                                    <span class="badge bg-warning">{{ fixed_expense.due_day }}</span>
+                                </div>
+                            </div>
+                            {% if fixed_expense.description %}
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <strong>Descripción:</strong><br>
+                                    <span class="text-muted">{{ fixed_expense.description }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información de eliminación -->
+                    {% if bills_count > 0 or payments_count > 0 %}
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Eliminación completa</strong><br>
+                        <small>
+                            Este gasto fijo tiene registros asociados que también serán eliminados:
+                            <ul class="mb-0 mt-2">
+                                {% if bills_count > 0 %}
+                                <li><strong>{{ bills_count }}</strong> boleta{{ bills_count|pluralize }} generada{{ bills_count|pluralize }}</li>
+                                {% endif %}
+                                {% if payments_count > 0 %}
+                                <li><strong>{{ payments_count }}</strong> pago{{ payments_count|pluralize }} registrado{{ payments_count|pluralize }}</li>
+                                {% endif %}
+                            </ul>
+                            <br>
+                            <strong>⚠️ Esta acción eliminará TODOS los registros relacionados y no se puede deshacer.</strong>
+                        </small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Eliminación simple</strong><br>
+                        <small>Este gasto fijo no tiene boletas ni pagos asociados.</small>
+                    </div>
+                    {% endif %}
+
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'frontend:expenses_fixed_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+                        </a>
+                        
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            {% if bills_count > 0 or payments_count > 0 %}
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ ADVERTENCIA: Esta acción eliminará PERMANENTEMENTE el gasto fijo y TODOS sus registros asociados ({{ bills_count }} boleta{{ bills_count|pluralize }} y {{ payments_count }} pago{{ payments_count|pluralize }}). Esta acción NO se puede deshacer.\\n\\n¿Está completamente seguro de continuar?')">
+                                <i class="fas fa-trash-alt me-2"></i>Eliminar Todo
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Está seguro de que desea eliminar este gasto fijo? Esta acción no se puede deshacer.')">
+                                <i class="fas fa-trash-alt me-2"></i>Eliminar Gasto Fijo
+                            </button>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

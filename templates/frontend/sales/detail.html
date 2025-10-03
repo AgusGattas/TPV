@@ -216,6 +216,11 @@
             <button type="button" class="btn btn-primary" onclick="printTicket()">
                 <i class="fas fa-print me-2"></i>Imprimir
             </button>
+            {% if sale.cashbox.is_open and sale.user == user or user.is_admin %}
+            <a href="{% url 'frontend:sale_delete' sale.id %}" class="btn btn-outline-danger">
+                <i class="fas fa-trash-alt me-2"></i>Eliminar
+            </a>
+            {% endif %}
         </div>
     </div>
 

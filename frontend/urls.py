@@ -31,10 +31,12 @@ urlpatterns = [
     path('ventas/', views.sales_list, name='sales_list'),
     path('ventas/crear/', views.sale_create, name='sale_create'),
     path('ventas/<int:pk>/', views.sale_detail, name='sale_detail'),
+    path('ventas/<int:pk>/eliminar/', views.sale_delete, name='sale_delete'),
     
     # Stock
     path('stock/', views.stock_list, name='stock_list'),
     path('stock/movimientos/', views.stock_movements, name='stock_movements'),
+    path('stock/movimientos/<int:pk>/eliminar/', views.stock_movement_delete, name='stock_movement_delete'),
     path('stock/<int:pk>/agregar/', views.add_stock, name='add_stock'),
     
     # Caja
@@ -77,6 +79,7 @@ urlpatterns = [
     path('costos-fijos/crear/', views.expense_fixed_create, name='expense_fixed_create'),
     path('costos-fijos/<int:pk>/', views.expense_fixed_detail_redirect, name='expense_fixed_detail'),
     path('costos-fijos/<int:pk>/estado-cuenta/', views.fixed_expense_account_status, name='fixed_expense_account_status'),
+    path('costos-fijos/<int:pk>/eliminar/', views.fixed_expense_delete, name='fixed_expense_delete'),
     path('costos-fijos/<int:expense_pk>/boletas/', views.expense_bills_list_redirect, name='expense_bills_list'),
     path('costos-fijos/<int:expense_pk>/boletas/crear/', views.expense_bill_create, name='expense_bill_create'),
     path('costos-fijos/<int:expense_pk>/boletas/<int:bill_pk>/editar/', views.expense_bill_edit, name='expense_bill_edit'),

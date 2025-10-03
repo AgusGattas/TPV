@@ -94,6 +94,53 @@ class Sale(BaseModel):
         self.is_active = False
         self.save()
 
+    def delete_sale(self):
+        """Elimina la venta y revierte todos los cambios (stock, movimientos, etc.)"""
+        from django.db import transaction
+        from stock.models import Stock, StockMovement
+        
+        with transaction.atomic():
+            # 1. Revertir stock para cada item de la venta
+            for item in self.items.all():
+                try:
+                    stock = Stock.objects.get(product=item.product)
+                    # Agregar el stock de vuelta
+                    stock.add_stock(
+                        quantity=item.quantity,
+                        cost_price=stock.average_cost,  # Usar el costo promedio actual
+                        reason=f"Eliminación de venta #{self.id}"
+                    )
+                    
+                    # Eliminar el movimiento de stock de la venta
+                    StockMovement.objects.filter(
+                        stock=stock,
+                        type='egreso',
+                        sale=self,
+                        reason=f"Venta #{self.id}"
+                    ).delete()
+                    
+                except Stock.DoesNotExist:
+                    # Si no existe stock, crear uno con cantidad 0
+                    stock = Stock.objects.create(
+                        product=item.product,
+                        current_quantity=0,
+                        average_cost=0
+                    )
+                    stock.add_stock(
+                        quantity=item.quantity,
+                        cost_price=0,
+                        reason=f"Eliminación de venta #{self.id}"
+                    )
+            
+            # 2. Eliminar todos los items de la venta
+            self.items.all().delete()
+            
+            # 3. Marcar la venta como inactiva (soft delete)
+            self.is_active = False
+            self.save()
+            
+            return True
+
     @property
     def sale_discount_amount(self):
         """Calcula el monto del descuento general de la venta"""

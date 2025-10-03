@@ -145,9 +145,13 @@
                                     </div>
                                     <div class="text-end">
                                         <div class="fw-bold">${{ expense_data.expense.amount|floatformat:2 }}</div>
-                                        <small class="{% if expense_data.remaining_amount > 0 %}text-warning{% else %}text-success{% endif %}">
+                                        <small class="{% if expense_data.remaining_amount > 0 %}{% if expense_data.expense.is_overdue %}text-danger{% else %}text-warning{% endif %}{% else %}text-success{% endif %}">
                                             {% if expense_data.remaining_amount > 0 %}
-                                                Pendiente: ${{ expense_data.remaining_amount|floatformat:2 }}
+                                                {% if expense_data.expense.is_overdue %}
+                                                    Vencido: ${{ expense_data.remaining_amount|floatformat:2 }}
+                                                {% else %}
+                                                    Pendiente: ${{ expense_data.remaining_amount|floatformat:2 }}
+                                                {% endif %}
                                             {% else %}
                                                 Pagada
                                             {% endif %}

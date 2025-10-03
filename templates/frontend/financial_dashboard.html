@@ -132,7 +132,7 @@
                 <div class="stats-card success">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">{{ total_sales_count }}</div>
+                            <div class="stats-number" data-value="{{ total_sales_count }}">{{ total_sales_count }}</div>
                             <div class="stats-label">Total Ventas</div>
                         </div>
                         <div class="ms-3">
@@ -146,7 +146,7 @@
                 <div class="stats-card info">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ total_sales_revenue|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ total_sales_revenue }}">${{ total_sales_revenue|floatformat:0 }}</div>
                             <div class="stats-label">Facturación Bruta</div>
                         </div>
                         <div class="ms-3">
@@ -160,7 +160,7 @@
                 <div class="stats-card warning">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ total_cmv|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ total_cmv }}">${{ total_cmv|floatformat:0 }}</div>
                             <div class="stats-label">Costo Mercadería</div>
                         </div>
                         <div class="ms-3">
@@ -174,7 +174,7 @@
                 <div class="stats-card">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ total_utility|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ total_utility }}">${{ total_utility|floatformat:0 }}</div>
                             <div class="stats-label">Utilidad Bruta</div>
                         </div>
                         <div class="ms-3">
@@ -197,7 +197,7 @@
                 <div class="stats-card success">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ real_income|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ real_income }}">${{ real_income|floatformat:0 }}</div>
                             <div class="stats-label">Ingresos Reales</div>
                         </div>
                         <div class="ms-3">
@@ -211,7 +211,7 @@
                 <div class="stats-card danger">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ total_real_expenses|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ total_real_expenses }}">${{ total_real_expenses|floatformat:0 }}</div>
                             <div class="stats-label">Egresos Reales</div>
                         </div>
                         <div class="ms-3">
@@ -225,7 +225,7 @@
                 <div class="stats-card {% if real_balance >= 0 %}success{% else %}danger{% endif %}">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <div class="stats-number">${{ real_balance|floatformat:0 }}</div>
+                            <div class="stats-number" data-value="{{ real_balance }}">${{ real_balance|floatformat:0 }}</div>
                             <div class="stats-label">Saldo Financiero</div>
                         </div>
                         <div class="ms-3">
@@ -285,7 +285,7 @@
         </div>
     </div>
 
-    <!-- Pendientes -->
+    <!-- Pendientes de Pago -->
     <div class="section-card">
         <h4 class="mb-3">
             <i class="fas fa-clock me-2"></i>
@@ -295,7 +295,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-warning">${{ pending_invoices|floatformat:0 }}</h5>
+                        <h5 class="card-title text-warning" data-value="{{ pending_invoices }}">${{ pending_invoices|floatformat:0 }}</h5>
                         <p class="card-text">Facturas de Proveedores Pendientes</p>
                     </div>
                 </div>
@@ -303,12 +303,69 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-danger">${{ pending_expenses|floatformat:0 }}</h5>
+                        <h5 class="card-title text-warning" data-value="{{ pending_expenses }}">${{ pending_expenses|floatformat:0 }}</h5>
                         <p class="card-text">Gastos Fijos Pendientes</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Vencidos -->
+    <div class="section-card">
+        <h4 class="mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Vencidos
+        </h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-danger" data-value="{{ overdue_invoices_amount }}">${{ overdue_invoices_amount|floatformat:0 }}</h5>
+                        <p class="card-text">Facturas de Proveedores Vencidas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-danger" data-value="{{ overdue_expenses_amount }}">${{ overdue_expenses_amount|floatformat:0 }}</h5>
+                        <p class="card-text">Gastos Fijos Vencidos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block frontend_extra_js %}
+<script>
+// Función para formatear números con punto como separador de miles
+function formatNumberWithDots(value) {
+    if (value === null || value === undefined || value === '') return '';
+    
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    
+    // Formatear con punto como separador de miles
+    return num.toLocaleString('es-AR');
+}
+
+// Aplicar formato a todos los elementos con data-value
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = document.querySelectorAll('[data-value]');
+    elements.forEach(function(element) {
+        const value = element.getAttribute('data-value');
+        const formattedValue = formatNumberWithDots(value);
+        
+        // Si el elemento contiene un $, mantenerlo
+        if (element.textContent.includes('$')) {
+            element.textContent = '$' + formattedValue;
+        } else {
+            element.textContent = formattedValue;
+        }
+    });
+});
+</script>
 {% endblock %} 
