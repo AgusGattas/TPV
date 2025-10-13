@@ -56,7 +56,8 @@ class Sale(BaseModel):
 
     def generate_ticket_number(self):
         """Genera un número de ticket único"""
-        last_sale = Sale.objects.filter(is_active=True).order_by('-id').first()
+        # Buscar el último número de ticket usado (independientemente del estado is_active)
+        last_sale = Sale.objects.filter(ticket_number__isnull=False).exclude(ticket_number='').order_by('-id').first()
         if last_sale and last_sale.ticket_number:
             try:
                 last_number = int(last_sale.ticket_number.split('-')[1]) if '-' in last_sale.ticket_number else 0
