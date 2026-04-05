@@ -464,6 +464,19 @@ def sale_detail(request, pk):
 
 
 @login_required
+def sale_print(request, pk):
+    """Vista mínima para imprimir el ticket (diálogo del sistema / impresora)."""
+    sale = get_object_or_404(
+        Sale.objects.select_related("user", "cashbox", "cashbox__user").prefetch_related(
+            "items__product"
+        ),
+        pk=pk,
+        is_active=True,
+    )
+    return render(request, "frontend/sales/print.html", {"sale": sale})
+
+
+@login_required
 def sale_delete(request, pk):
     """Eliminar una venta y revertir todos los cambios"""
     sale = get_object_or_404(Sale, pk=pk, is_active=True)

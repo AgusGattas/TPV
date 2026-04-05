@@ -549,7 +549,7 @@
                     <a href="{% url 'frontend:sale_detail' sale.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalle">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printSale({{ sale.id }})" title="Imprimir">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-print-url="{% url 'frontend:sale_print' sale.id %}" onclick="openSalePrint(this)" title="Imprimir">
                         <i class="fas fa-print"></i>
                     </button>
                     {% if sale.cashbox.is_open and sale.user == user or user.is_admin %}
@@ -615,9 +615,9 @@
 
 {% block extra_js %}
 <script>
-function printSale(saleId) {
-    // Abrir una nueva ventana para imprimir
-    const printWindow = window.open(`/sales/${saleId}/print/`, '_blank');
+function openSalePrint(btn) {
+    const url = btn.getAttribute('data-print-url');
+    const printWindow = window.open(url, '_blank');
     if (!printWindow) {
         alert('Por favor, permite las ventanas emergentes para imprimir');
     }
