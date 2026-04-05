@@ -213,9 +213,9 @@
             <a href="{% url 'frontend:sales_list' %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Volver
             </a>
-            <button type="button" class="btn btn-primary" onclick="printTicket()">
+            <a href="{% url 'frontend:sale_print' sale.id %}" class="btn btn-primary" target="_blank" rel="noopener">
                 <i class="fas fa-print me-2"></i>Imprimir
-            </button>
+            </a>
             {% if sale.cashbox.is_open and sale.user == user or user.is_admin %}
             <a href="{% url 'frontend:sale_delete' sale.id %}" class="btn btn-outline-danger">
                 <i class="fas fa-trash-alt me-2"></i>Eliminar
@@ -500,15 +500,6 @@
 
 {% block frontend_extra_js %}
 <script>
-// Imprimir ticket
-function printTicket() {
-    // Aquí iría la lógica de impresión
-    alert('Función de impresión en desarrollo');
-    
-    // Opción temporal: imprimir la página
-    // window.print();
-}
-
 // Inicializar tooltips
 document.addEventListener('DOMContentLoaded', function() {
     // Tooltips

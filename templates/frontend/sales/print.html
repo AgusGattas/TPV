@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ticket {{ sale.ticket_number }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            line-height: 1.35;
+            color: #111;
+            margin: 0;
+            padding: 12px;
+            max-width: 80mm;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1 {
+            font-size: 14px;
+            text-align: center;
+            margin: 0 0 4px 0;
+            font-weight: 700;
+        }
+        .sub {
+            text-align: center;
+            font-size: 11px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+        .divider {
+            border: none;
+            border-top: 1px dashed #999;
+            margin: 8px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            font-size: 10px;
+            font-weight: 600;
+            color: #555;
+            padding: 2px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+        .col-qty { width: 2rem; text-align: center; }
+        .col-price, .col-total { text-align: right; white-space: nowrap; }
+        .totals-row td { padding: 2px 0; }
+        .totals-row .label { color: #444; }
+        .totals-row .amt { text-align: right; font-weight: 600; }
+        .grand {
+            font-size: 15px;
+            font-weight: 800;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 2px solid #111;
+        }
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            margin-top: 14px;
+        }
+        .no-print {
+            margin: 16px 0;
+            text-align: center;
+        }
+        .no-print button {
+            font-size: 14px;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #fff;
+        }
+        .no-print button.primary {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+        @media print {
+            body { padding: 4px; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <h1>TodoBrilla</h1>
+    <div class="sub">Ticket de venta</div>
+
+    <div><strong>#{{ sale.ticket_number }}</strong></div>
+    <div>{{ sale.created_at|date:"d/m/Y H:i" }}</div>
+    <div>Vendedor: {{ sale.user.get_full_name|default:sale.user.username }}</div>
+    <div>Caja: {{ sale.cashbox.user.get_full_name|default:sale.cashbox.user.username }}</div>
+    <div>Pago: {{ sale.get_payment_method_display }}</div>
+
+    <hr class="divider">
+
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th class="col-qty">Cant.</th>
+                <th class="col-price">P.u.</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.items.all %}
+            <tr>
+                <td>{{ item.product.name }}{% if item.discount_percentage > 0 %} <span style="font-size:10px;color:#060;">(-{{ item.discount_percentage }}%)</span>{% endif %}</td>
+                <td class="col-qty">{{ item.quantity }}</td>
+                <td class="col-price">${{ item.unit_price|floatformat:0 }}</td>
+                <td class="col-total">${{ item.total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr class="divider">
+
+    <table class="totals">
+        <tr class="totals-row">
+            <td class="label">Subtotal</td>
+            <td class="amt">${{ sale.subtotal|floatformat:0 }}</td>
+        </tr>
+        {% if sale.total_discount > 0 %}
+        <tr class="totals-row">
+            <td class="label">Descuentos</td>
+            <td class="amt">-${{ sale.total_discount|floatformat:0 }}</td>
+        </tr>
+        {% endif %}
+        <tr class="totals-row grand">
+            <td class="label">TOTAL</td>
+            <td class="amt">${{ sale.total_final|floatformat:0 }}</td>
+        </tr>
+    </table>
+
+    {% if sale.notes %}
+    <hr class="divider">
+    <div><strong>Notas:</strong> {{ sale.notes }}</div>
+    {% endif %}
+
+    <div class="footer">Gracias por su compra</div>
+
+    <div class="no-print">
+        <button type="button" class="primary" onclick="window.print()">Imprimir</button>
+        <button type="button" onclick="window.close()">Cerrar</button>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+            setTimeout(function () { window.print(); }, 200);
+        });
+    </script>
+</body>
+</html>
