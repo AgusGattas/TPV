@@ -6,16 +6,19 @@
     <title>Ticket {{ sale.ticket_number }}</title>
     <style>
         * { box-sizing: border-box; }
+        @page {
+            size: 80mm auto;
+            margin: 2mm;
+        }
         body {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-family: "Courier New", Courier, monospace;
             font-size: 12px;
             line-height: 1.35;
-            color: #111;
+            color: #000;
             margin: 0;
-            padding: 12px;
-            max-width: 80mm;
-            margin-left: auto;
-            margin-right: auto;
+            padding: 4px;
+            width: 76mm;
+            max-width: 76mm;
         }
         h1 {
             font-size: 14px;
@@ -86,7 +89,14 @@
             border-color: #0d6efd;
         }
         @media print {
-            body { padding: 4px; }
+            html, body {
+                width: 76mm;
+                max-width: 76mm;
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
             .no-print { display: none !important; }
         }
     </style>
@@ -151,13 +161,40 @@
     <div class="footer">Gracias por su compra</div>
 
     <div class="no-print">
-        <button type="button" class="primary" onclick="window.print()">Imprimir</button>
+        <p style="font-size:11px;color:#666;max-width:320px;margin:0 auto 12px;">
+            Si el ticket sale con símbolos raros: en el diálogo de impresión desactivá
+            <strong>Encabezados y pies de página</strong>, elegí la impresora térmica correcta
+            y usá el driver del fabricante (no “Generic / Text Only”).
+        </p>
+        <button type="button" class="primary" onclick="printTicket()">Imprimir</button>
         <button type="button" onclick="window.close()">Cerrar</button>
     </div>
 
     <script>
-        window.addEventListener('load', function () {
-            setTimeout(function () { window.print(); }, 200);
+        var printStarted = false;
+
+        function printTicket() {
+            if (printStarted) return;
+            printStarted = true;
+            window.print();
+        }
+
+        function scheduleAutoPrint() {
+            var ready = document.fonts && document.fonts.ready
+                ? document.fonts.ready
+                : Promise.resolve();
+            ready.then(function () {
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        setTimeout(printTicket, 400);
+                    });
+                });
+            });
+        }
+
+        window.addEventListener('load', scheduleAutoPrint);
+        window.addEventListener('afterprint', function () {
+            window.close();
         });
     </script>
 </body>
