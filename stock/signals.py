@@ -20,6 +20,18 @@ def create_stock_on_product_creation(sender, instance, created, **kwargs):
 
 
 
+@receiver(post_save, sender=StockMovement)
+def sync_stock_on_movement_save(sender, instance, **kwargs):
+    """Mantiene el stock actualizado cuando se editan movimientos desde el admin."""
+    instance.stock.recalculate_from_movements()
+
+
+@receiver(post_delete, sender=StockMovement)
+def sync_stock_on_movement_delete(sender, instance, **kwargs):
+    """Recalcula el stock si se elimina un movimiento."""
+    instance.stock.recalculate_from_movements()
+
+
 @receiver(post_save, sender='sales.Sale')
 def reverse_stock_on_sale_cancel(sender, instance, **kwargs):
     """Revertir stock cuando se cancela una venta"""

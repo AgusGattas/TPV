@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from products.models import Product
 from django_base.base_utils.base_models import BaseModel
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class Stock(BaseModel):
@@ -25,6 +25,32 @@ class Stock(BaseModel):
 
     def __str__(self):
         return f"{self.product.name} - Stock: {self.current_quantity}"
+
+    def recalculate_from_movements(self, save=True):
+        """Recalcula cantidad y costo promedio a partir del historial de movimientos."""
+        movements = self.movements.order_by('created_at', 'id')
+
+        quantity = 0
+        average_cost = Decimal('0')
+
+        for movement in movements:
+            if movement.type == 'ingreso':
+                total_cost = (quantity * average_cost) + (movement.quantity * movement.cost_price)
+                quantity += movement.quantity
+                if quantity > 0:
+                    average_cost = (total_cost / quantity).quantize(
+                        Decimal('0.01'), rounding=ROUND_HALF_UP
+                    )
+            elif movement.type in ('egreso', 'devolucion'):
+                quantity -= movement.quantity
+
+        self.current_quantity = quantity
+        self.average_cost = average_cost
+
+        if save:
+            self.save(update_fields=['current_quantity', 'average_cost', 'updated_at'])
+
+        return self
 
     def add_stock(self, quantity, cost_price, reason="Compra"):
         """Agrega stock al producto"""

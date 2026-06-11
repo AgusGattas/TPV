@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}Agregar Stock - TodoBrilla{% endblock %}
 
@@ -109,7 +109,7 @@
                             <small class="opacity-75">Stock Mínimo</small>
                         </div>
                         <div class="col-4">
-                            <div class="h4 mb-0">${{ last_cost_price|floatformat:0 }}</div>
+                            <div class="h4 mb-0">${% localize off %}{{ last_cost_price|floatformat:2 }}{% endlocalize %}</div>
                             <small class="opacity-75">Último Precio de Costo</small>
                         </div>
                     </div>
@@ -123,7 +123,7 @@
                     Agregar Stock
                 </h5>
                 
-                <form id="addStockForm" method="post">
+                <form id="addStockForm" method="post" data-current-stock="{{ stock.current_quantity }}">
                     {% csrf_token %}
                     
                     <div class="mb-3">
@@ -140,12 +140,13 @@
                         <label for="cost_price" class="form-label">Precio de Costo por Unidad *</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="cost_price" name="cost_price" 
-                                   step="0.01" min="0" value="{{ last_cost_price|floatformat:2 }}" required onfocus="this.select()">
+                            <input type="text" inputmode="decimal" class="form-control" id="cost_price" name="cost_price"
+                                   value="{% localize off %}{{ last_cost_price|floatformat:2 }}{% endlocalize %}"
+                                   autocomplete="off" required>
                         </div>
                         <div class="form-text">
                             <i class="fas fa-calculator me-1"></i>
-                            Último precio de costo: ${{ last_cost_price|floatformat:2 }} | Este precio se usará para actualizar el stock
+                            Último precio de costo: ${% localize off %}{{ last_cost_price|floatformat:2 }}{% endlocalize %} | Este precio se usará para actualizar el stock
                         </div>
                     </div>
                     
@@ -186,7 +187,7 @@
                         <div class="row mt-2">
                             <div class="col-md-6">
                                 <small class="text-dark">Último Precio de Costo</small>
-                                <div class="text-dark">${{ last_cost_price|floatformat:0 }}</div>
+                                <div class="text-dark">${% localize off %}{{ last_cost_price|floatformat:2 }}{% endlocalize %}</div>
                             </div>
                             <div class="col-md-6">
                                 <small class="text-dark">Total Valor</small>
@@ -227,12 +228,26 @@ document.getElementById('reason').addEventListener('change', function() {
     }
 });
 
+function parseMoneyInput(value) {
+    const normalized = String(value).trim().replace(',', '.');
+    const parsed = parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeMoneyInput(input) {
+    const parsed = parseMoneyInput(input.value);
+    if (parsed >= 0) {
+        input.value = parsed.toFixed(2);
+    }
+}
+
 // Calcular resumen en tiempo real
 function updateSummary() {
-    const quantity = parseInt(document.getElementById('quantity').value) || 0;
-    const costPrice = parseFloat(document.getElementById('cost_price').value) || 0;
-    const currentStock = {{ stock.current_quantity }};
-    
+    const form = document.getElementById('addStockForm');
+    const quantity = parseInt(document.getElementById('quantity').value, 10) || 0;
+    const costPrice = parseMoneyInput(document.getElementById('cost_price').value);
+    const currentStock = parseInt(form.dataset.currentStock, 10) || 0;
+
     const newStock = currentStock + quantity;
     const totalValue = quantity * costPrice;
     
@@ -240,10 +255,20 @@ function updateSummary() {
     document.getElementById('newCost').textContent = '$' + totalValue.toFixed(0);
 }
 
+const costPriceInput = document.getElementById('cost_price');
+
 document.getElementById('quantity').addEventListener('input', updateSummary);
-document.getElementById('cost_price').addEventListener('input', updateSummary);
+costPriceInput.addEventListener('input', updateSummary);
+costPriceInput.addEventListener('blur', function() {
+    normalizeMoneyInput(this);
+    updateSummary();
+});
+costPriceInput.addEventListener('focus', function() {
+    this.select();
+});
 
 // Inicializar resumen
+normalizeMoneyInput(costPriceInput);
 updateSummary();
 </script>
-{% endblock %} 
+{% endblock %}
