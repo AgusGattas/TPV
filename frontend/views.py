@@ -843,11 +843,6 @@ def add_stock(request, pk):
     if last_cost_price is None:
         last_cost_price = stock.product.cost_price
     
-    if last_cost_price is not None:
-        last_cost_price = Decimal(str(last_cost_price)).quantize(
-            Decimal('0.01'), rounding=decimal.ROUND_HALF_UP
-        )
-    
     context = {
         'stock': stock,
         'last_cost_price': last_cost_price,
@@ -857,10 +852,7 @@ def add_stock(request, pk):
         try:
             # Obtener datos del formulario
             quantity = int(request.POST.get('quantity', 0))
-            cost_price_str = request.POST.get('cost_price', '0').strip().replace(',', '.')
-            cost_price = Decimal(cost_price_str).quantize(
-                Decimal('0.01'), rounding=decimal.ROUND_HALF_UP
-            )
+            cost_price = Decimal(request.POST.get('cost_price', 0))
             reason = request.POST.get('reason', 'Compra')
             custom_reason = request.POST.get('custom_reason', '')
             
