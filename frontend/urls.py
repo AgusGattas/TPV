@@ -32,6 +32,7 @@ urlpatterns = [
     path('ventas/crear/', views.sale_create, name='sale_create'),
     path('ventas/<int:pk>/', views.sale_detail, name='sale_detail'),
     path('ventas/<int:pk>/imprimir/', views.sale_print, name='sale_print'),
+    path('ventas/<int:pk>/ticket/raw/', views.api_sale_ticket_raw, name='api_sale_ticket_raw'),
     path('ventas/<int:pk>/eliminar/', views.sale_delete, name='sale_delete'),
     
     # Stock
@@ -93,6 +94,8 @@ urlpatterns = [
     path('perfil/', views.profile, name='profile'),
     
     # APIs
+    path('api/qz/certificate/', views.api_qz_certificate, name='api_qz_certificate'),
+    path('api/qz/sign/', views.api_qz_sign, name='api_qz_sign'),
     path('api/buscar-productos/', views.api_search_products, name='api_search_products'),
     path('api/productos/<int:pk>/stock/', views.api_product_stock, name='api_product_stock'),
     path('api/productos/por-codigo/<str:barcode>/', views.api_product_by_barcode, name='api_product_by_barcode'),

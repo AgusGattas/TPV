@@ -39,6 +39,7 @@ MY_APPS = [
     "suppliers",
     "expenses",
     "analytics",
+    "frontend",
 ]
 
 INSTALLED_APPS = THIRD_APPS + MY_APPS + BASE_APPS

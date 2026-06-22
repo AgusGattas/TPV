@@ -220,9 +220,82 @@
                         <i class="fas fa-list me-2"></i>Mis Ventas
                     </a>
                 </div>
+
+                <hr class="my-4">
+
+                <h6 class="mb-3">
+                    <i class="fas fa-print me-2"></i>
+                    Impresora de tickets
+                </h6>
+                <p class="text-muted small">
+                    Configuración local de esta PC (QZ Tray). Se guarda en el navegador.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label">Impresora seleccionada</label>
+                    <input type="text" class="form-control form-control-sm" id="savedPrinter" readonly placeholder="Sin configurar">
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnChoosePrinter">
+                        Elegir impresora
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnClearPrinter">
+                        Borrar selección
+                    </button>
+                </div>
+
+                <div class="alert alert-info mt-3 mb-0 small">
+                    <strong>Sin carteles de QZ (una vez por Mac):</strong>
+                    <ol class="mb-2 ps-3">
+                        <li>Generá certificados en el servidor: <code>docker compose exec web python manage.py generate_qz_certificate</code></li>
+                        <li>En la Mac: <code>./scripts/install_qz_tray_mac.sh</code></li>
+                        <li>Verificá en <a href="https://demo.qz.io" target="_blank" rel="noopener">demo.qz.io</a> que diga <strong>Connected</strong></li>
+                    </ol>
+                    <a href="{% url 'frontend:api_qz_certificate' %}" class="btn btn-sm btn-outline-primary" download="todobrilla-qz.crt">
+                        Descargar certificado
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %} 
+{% endblock %}
+
+{% block extra_js %}
+{% include "frontend/includes/qz_print_scripts.html" %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const savedInput = document.getElementById('savedPrinter');
+    const saved = TodoBrillaPrint.getSavedPrinter();
+    if (savedInput) {
+        savedInput.value = saved || '';
+    }
+
+    document.getElementById('btnChoosePrinter').addEventListener('click', async function () {
+        try {
+            const printers = await TodoBrillaPrint.listPrinters();
+            const message =
+                'Impresoras disponibles:\n\n' +
+                printers.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n') +
+                '\n\nEscribí el nombre exacto:';
+            const chosen = window.prompt(message, TodoBrillaPrint.getSavedPrinter() || printers[0]);
+            if (!chosen) return;
+            if (printers.indexOf(chosen) === -1) {
+                alert('Impresora no válida.');
+                return;
+            }
+            TodoBrillaPrint.setPrinter(chosen);
+            savedInput.value = chosen;
+            alert('Impresora guardada: ' + chosen);
+        } catch (error) {
+            alert(error && error.message ? error.message : String(error));
+        }
+    });
+
+    document.getElementById('btnClearPrinter').addEventListener('click', function () {
+        TodoBrillaPrint.clearPrinter();
+        savedInput.value = '';
+    });
+});
+</script>
+{% endblock %}

@@ -6,76 +6,23 @@
     <title>Ticket {{ sale.ticket_number }}</title>
     <style>
         * { box-sizing: border-box; }
-        @page {
-            size: 80mm auto;
-            margin: 2mm;
-        }
         body {
-            font-family: "Courier New", Courier, monospace;
-            font-size: 12px;
-            line-height: 1.35;
-            color: #000;
-            margin: 0;
-            padding: 4px;
-            width: 76mm;
-            max-width: 76mm;
-        }
-        h1 {
+            font-family: system-ui, sans-serif;
             font-size: 14px;
-            text-align: center;
-            margin: 0 0 4px 0;
-            font-weight: 700;
+            line-height: 1.5;
+            color: #222;
+            margin: 0;
+            padding: 24px;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        .sub {
-            text-align: center;
-            font-size: 11px;
-            color: #444;
-            margin-bottom: 10px;
-        }
-        .divider {
-            border: none;
-            border-top: 1px dashed #999;
-            margin: 8px 0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            font-size: 10px;
-            font-weight: 600;
-            color: #555;
-            padding: 2px 0;
-            border-bottom: 1px solid #ccc;
-        }
-        td {
-            padding: 4px 0;
-            vertical-align: top;
-        }
-        .col-qty { width: 2rem; text-align: center; }
-        .col-price, .col-total { text-align: right; white-space: nowrap; }
-        .totals-row td { padding: 2px 0; }
-        .totals-row .label { color: #444; }
-        .totals-row .amt { text-align: right; font-weight: 600; }
-        .grand {
-            font-size: 15px;
-            font-weight: 800;
-            margin-top: 6px;
-            padding-top: 6px;
-            border-top: 2px solid #111;
-        }
-        .footer {
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-            margin-top: 14px;
-        }
-        .no-print {
-            margin: 16px 0;
-            text-align: center;
-        }
-        .no-print button {
+        h1 { font-size: 18px; margin: 0 0 8px 0; }
+        .status { margin: 16px 0; padding: 12px; border-radius: 8px; background: #f8f9fa; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.success { background: #d4edda; color: #155724; }
+        .actions { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+        button {
             font-size: 14px;
             padding: 8px 16px;
             cursor: pointer;
@@ -83,118 +30,139 @@
             border: 1px solid #333;
             background: #fff;
         }
-        .no-print button.primary {
-            background: #0d6efd;
-            color: #fff;
-            border-color: #0d6efd;
+        button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        button:disabled { opacity: 0.65; cursor: not-allowed; }
+        .hint { font-size: 12px; color: #666; margin-top: 16px; }
+        .preview-wrap {
+            margin-top: 16px;
+            border: 1px dashed #bbb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .preview-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #666;
+            padding: 8px 12px;
+            background: #f1f3f5;
+            border-bottom: 1px dashed #bbb;
+        }
+        .preview {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 11px;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            margin: 0;
+            padding: 12px;
+            width: 100%;
+            max-width: 76mm;
         }
         @media print {
-            html, body {
+            body > :not(.preview-wrap) { display: none !important; }
+            .preview-wrap {
+                border: none;
+                margin: 0;
+            }
+            .preview-label { display: none; }
+            .preview {
                 width: 76mm;
                 max-width: 76mm;
-                margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                font-size: 12px;
             }
-            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
-    <h1>TodoBrilla</h1>
-    <div class="sub">Ticket de venta</div>
+    <form style="display:none" aria-hidden="true">{% csrf_token %}</form>
+    <h1>Ticket #{{ sale.ticket_number }}</h1>
+    <div id="status" class="status">Vista previa del ticket. Revisá y confirmá la impresión.</div>
 
-    <div><strong>#{{ sale.ticket_number }}</strong></div>
-    <div>{{ sale.created_at|date:"d/m/Y H:i" }}</div>
-    <div>Vendedor: {{ sale.user.get_full_name|default:sale.user.username }}</div>
-    <div>Caja: {{ sale.cashbox.user.get_full_name|default:sale.cashbox.user.username }}</div>
-    <div>Pago: {{ sale.get_payment_method_display }}</div>
+    <div class="preview-wrap">
+        <div class="preview-label">Vista previa</div>
+        <pre id="preview" class="preview">{{ sale_preview }}</pre>
+    </div>
 
-    <hr class="divider">
-
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th class="col-qty">Cant.</th>
-                <th class="col-price">P.u.</th>
-                <th class="col-total">Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in sale.items.all %}
-            <tr>
-                <td>{{ item.product.name }}{% if item.discount_percentage > 0 %} <span style="font-size:10px;color:#060;">(-{{ item.discount_percentage }}%)</span>{% endif %}</td>
-                <td class="col-qty">{{ item.quantity }}</td>
-                <td class="col-price">${{ item.unit_price|floatformat:0 }}</td>
-                <td class="col-total">${{ item.total|floatformat:0 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <hr class="divider">
-
-    <table class="totals">
-        <tr class="totals-row">
-            <td class="label">Subtotal</td>
-            <td class="amt">${{ sale.subtotal|floatformat:0 }}</td>
-        </tr>
-        {% if sale.total_discount > 0 %}
-        <tr class="totals-row">
-            <td class="label">Descuentos</td>
-            <td class="amt">-${{ sale.total_discount|floatformat:0 }}</td>
-        </tr>
-        {% endif %}
-        <tr class="totals-row grand">
-            <td class="label">TOTAL</td>
-            <td class="amt">${{ sale.total_final|floatformat:0 }}</td>
-        </tr>
-    </table>
-
-    {% if sale.notes %}
-    <hr class="divider">
-    <div><strong>Notas:</strong> {{ sale.notes }}</div>
-    {% endif %}
-
-    <div class="footer">Gracias por su compra</div>
-
-    <div class="no-print">
-        <p style="font-size:11px;color:#666;max-width:320px;margin:0 auto 12px;">
-            Si el ticket sale con símbolos raros: en el diálogo de impresión desactivá
-            <strong>Encabezados y pies de página</strong>, elegí la impresora térmica correcta
-            y usá el driver del fabricante (no “Generic / Text Only”).
-        </p>
-        <button type="button" class="primary" onclick="printTicket()">Imprimir</button>
+    <div class="actions">
+        <button type="button" class="primary" id="btnPrint">Imprimir ticket</button>
+        <button type="button" id="btnChoosePrinter">Elegir impresora</button>
+        <button type="button" id="btnBrowserPrint">Imprimir con navegador</button>
+        <button type="button" id="btnRetry" style="display:none;">Reintentar</button>
         <button type="button" onclick="window.close()">Cerrar</button>
     </div>
 
+    <p class="hint">
+        La impresión térmica usa <strong>QZ Tray</strong> (comandos ESC/POS directos, sin símbolos raros).
+        Para no ver carteles: ejecutá <code>./scripts/install_qz_tray_mac.sh</code> una vez en esta Mac.
+    </p>
+
+    <div id="blockedHelp" class="status error" style="display:none; margin-top:12px;">
+        <strong>Conexión bloqueada por QZ Tray</strong>
+        <ol style="margin:8px 0 0 0; padding-left:18px;">
+            <li>Barra de menú → <strong>QZ Tray → Advanced → Site Manager</strong></li>
+            <li>Pestaña <strong>Blocked</strong> → eliminá <em>localhost</em> o <em>TodoBrilla</em> con (−)</li>
+            <li>O en Terminal: <code>./scripts/install_qz_tray_mac.sh</code></li>
+            <li>Reiniciá QZ Tray y tocá <strong>Reintentar</strong></li>
+        </ol>
+    </div>
+
+    {% include "frontend/includes/qz_print_scripts.html" %}
     <script>
+        var saleId = {{ sale.id }};
         var printStarted = false;
+        var btnPrint = document.getElementById("btnPrint");
 
-        function printTicket() {
-            if (printStarted) return;
+        function setStatus(message, type) {
+            var el = document.getElementById("status");
+            el.textContent = message;
+            el.className = "status" + (type ? " " + type : "");
+        }
+
+        function setPrintingState(active) {
+            btnPrint.disabled = active;
+            btnPrint.textContent = active ? "Imprimiendo…" : "Imprimir ticket";
+        }
+
+        async function runPrint(forceChoose) {
+            if (typeof TodoBrillaPrint === "undefined") {
+                setStatus("No se cargó el módulo QZ. Usá «Imprimir con navegador» o recargá la página.", "error");
+                return;
+            }
+            if (printStarted && !forceChoose) return;
             printStarted = true;
+            setPrintingState(true);
+            document.getElementById("btnRetry").style.display = "none";
+            setStatus("Conectando con QZ Tray e enviando a la impresora…");
+
+            try {
+                var printer = await TodoBrillaPrint.printSale(saleId, { forceChoose: forceChoose });
+                setStatus("Ticket enviado a " + printer, "success");
+                setTimeout(function () { window.close(); }, 1500);
+            } catch (error) {
+                printStarted = false;
+                setPrintingState(false);
+                var message = error && error.message ? error.message : String(error);
+                setStatus(message, "error");
+                document.getElementById("btnRetry").style.display = "inline-block";
+                if (/bloqueó esta conexión|blocked by client/i.test(message)) {
+                    document.getElementById("blockedHelp").style.display = "block";
+                }
+            }
+        }
+
+        btnPrint.addEventListener("click", function () { runPrint(false); });
+        document.getElementById("btnChoosePrinter").addEventListener("click", function () {
+            printStarted = false;
+            runPrint(true);
+        });
+        document.getElementById("btnRetry").addEventListener("click", function () {
+            printStarted = false;
+            runPrint(false);
+        });
+        document.getElementById("btnBrowserPrint").addEventListener("click", function () {
+            setStatus("Abriendo diálogo de impresión del navegador…", "");
             window.print();
-        }
-
-        function scheduleAutoPrint() {
-            var ready = document.fonts && document.fonts.ready
-                ? document.fonts.ready
-                : Promise.resolve();
-            ready.then(function () {
-                requestAnimationFrame(function () {
-                    requestAnimationFrame(function () {
-                        setTimeout(printTicket, 400);
-                    });
-                });
-            });
-        }
-
-        window.addEventListener('load', scheduleAutoPrint);
-        window.addEventListener('afterprint', function () {
-            window.close();
         });
     </script>
 </body>

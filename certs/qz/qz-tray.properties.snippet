@@ -1,0 +1,21 @@
+# Pegá estas líneas al final de qz-tray.properties
+# (misma carpeta Resources donde está override.crt)
+#
+# Mac: QZ Tray > clic derecho > Mostrar contenido del paquete >
+#      Contents > Resources > qz-tray.properties
+#
+# O ejecutá desde la raíz del proyecto:
+#   chmod +x scripts/install_qz_tray_mac.sh
+#   ./scripts/install_qz_tray_mac.sh
+#   ./scripts/install_qz_tray_mac.sh https://tu-dominio-produccion.com
+#
+# IMPORTANTE: security.wss.alloworigin solo acepta UN origen.
+# No uses comas (http://a,http://b rompe todas las conexiones).
+# En desarrollo, no agregues alloworigin.
+#
+# Después reiniciá QZ Tray (Exit en la barra de menú y volver a abrir).
+
+security.require.confirmation=false
+
+# Solo en producción (un solo dominio):
+# security.wss.alloworigin=https://tu-dominio.com

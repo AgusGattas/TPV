@@ -1,0 +1,14 @@
+{% load static %}
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+<script src="{% static 'frontend/js/qz-print.js' %}"></script>
+<script>
+if (typeof TodoBrillaPrint === "undefined") {
+    console.error("No se pudo cargar qz-print.js. Verificá que /static/frontend/js/qz-print.js responda 200.");
+} else {
+    TodoBrillaPrint.initConfig({
+        certUrl: "{% url 'frontend:api_qz_certificate' %}",
+        signUrl: "{% url 'frontend:api_qz_sign' %}",
+        ticketUrlTemplate: "{% url 'frontend:api_sale_ticket_raw' 0 %}".replace("/0/", "/SALE_ID/"),
+    });
+}
+</script>

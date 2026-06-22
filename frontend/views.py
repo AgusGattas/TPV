@@ -11,7 +11,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from decimal import Decimal
 import decimal
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -464,8 +464,11 @@ def sale_detail(request, pk):
 
 
 @login_required
+@ensure_csrf_cookie
 def sale_print(request, pk):
-    """Vista mínima para imprimir el ticket (diálogo del sistema / impresora)."""
+    """Vista mínima para imprimir el ticket vía QZ Tray (ESC/POS raw)."""
+    from frontend.ticket import format_sale_ticket_escpos, format_sale_ticket_text
+
     sale = get_object_or_404(
         Sale.objects.select_related("user", "cashbox", "cashbox__user").prefetch_related(
             "items__product"
@@ -473,7 +476,73 @@ def sale_print(request, pk):
         pk=pk,
         is_active=True,
     )
-    return render(request, "frontend/sales/print.html", {"sale": sale})
+    return render(
+        request,
+        "frontend/sales/print.html",
+        {
+            "sale": sale,
+            "sale_preview": format_sale_ticket_text(sale),
+        },
+    )
+
+
+@login_required
+def api_qz_certificate(request):
+    """Certificado público para que QZ Tray confíe en este sitio."""
+    from frontend.qz_signing import get_qz_certificate_pem
+
+    return HttpResponse(get_qz_certificate_pem(), content_type="text/plain")
+
+
+@login_required
+@csrf_exempt
+def api_qz_sign(request):
+    """Firma peticiones de QZ Tray con la clave privada del servidor."""
+    from frontend.qz_signing import sign_qz_request
+
+    if request.method not in ("GET", "POST"):
+        return HttpResponse("Método no permitido", status=405, content_type="text/plain")
+
+    to_sign = request.GET.get("request", "")
+    if request.method == "POST":
+        if request.body:
+            try:
+                payload = json.loads(request.body)
+                to_sign = payload.get("request") or payload.get("message") or to_sign
+            except json.JSONDecodeError:
+                body_text = request.body.decode("utf-8", errors="replace")
+                if body_text and not to_sign:
+                    to_sign = body_text
+        if not to_sign:
+            to_sign = request.POST.get("request", "")
+
+    if not to_sign:
+        return HttpResponse("request vacío", status=400, content_type="text/plain")
+
+    try:
+        signature = sign_qz_request(to_sign)
+    except Exception as exc:
+        return HttpResponse(str(exc), status=500, content_type="text/plain")
+
+    return HttpResponse(signature, content_type="text/plain")
+
+
+@login_required
+def api_sale_ticket_raw(request, pk):
+    """Ticket de venta en bytes ESC/POS (base64) para QZ Tray."""
+    import base64
+
+    from frontend.ticket import format_sale_ticket_escpos
+
+    sale = get_object_or_404(
+        Sale.objects.select_related("user", "cashbox", "cashbox__user").prefetch_related(
+            "items__product"
+        ),
+        pk=pk,
+        is_active=True,
+    )
+    raw = format_sale_ticket_escpos(sale)
+    return JsonResponse({"data": base64.b64encode(raw).decode("ascii")})
 
 
 @login_required
