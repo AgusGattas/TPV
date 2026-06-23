@@ -1,9 +1,10 @@
-"""Formato de ticket en texto plano para impresoras térmicas 80mm (~42 columnas)."""
+"""Formato de ticket en texto plano para impresoras térmicas 80mm (~32 columnas)."""
 
 from decimal import Decimal
 
 
-TICKET_WIDTH = 42
+# 32 columnas: evita que la impresora parta P.u. / Total en dos líneas
+TICKET_WIDTH = 32
 
 
 def _money(value) -> str:
@@ -44,14 +45,29 @@ def _line(label: str, amount: str, width: int = TICKET_WIDTH) -> str:
     return f"{label}{' ' * gap}{amount}"
 
 
+def _item_numbers_line(quantity, unit_price, total, width: int = TICKET_WIDTH) -> str:
+    """Cantidad, P.u. y total en una sola línea (siempre cabe en el ancho del papel)."""
+    qty_w = 4
+    unit_w = 9
+    total_w = 9
+    qty_s = f"{quantity:>{qty_w}}"
+    unit_s = f"{_money(unit_price):>{unit_w}}"
+    total_s = f"{_money(total):>{total_w}}"
+    block = f"{qty_s}{unit_s}{total_s}"
+    pad = width - len(block)
+    if pad < 0:
+        return block[-width:]
+    return f"{' ' * pad}{block}"
+
+
 def format_sale_ticket_text(sale, width: int = TICKET_WIDTH) -> str:
     lines: list[str] = []
     separator = "-" * width
     double_sep = "=" * width
-    name_width = 22
-    qty_width = 4
-    unit_width = 7
-    total_width = 7
+    qty_w = 4
+    unit_w = 9
+    total_w = 9
+    numbers_header_pad = width - qty_w - unit_w - total_w
 
     seller = sale.user.get_full_name() or sale.user.username
     cashier = sale.cashbox.user.get_full_name() or sale.cashbox.user.username
@@ -67,7 +83,8 @@ def format_sale_ticket_text(sale, width: int = TICKET_WIDTH) -> str:
             f"Caja: {cashier}",
             f"Pago: {sale.get_payment_method_display()}",
             separator,
-            f"{'Producto':<{name_width}}{'Cant':>{qty_width}}{'P.u.':>{unit_width}}{'Total':>{total_width}}",
+            "Producto",
+            f"{' ' * numbers_header_pad}{'Cant':>{qty_w}}{'P.u.':>{unit_w}}{'Total':>{total_w}}",
             separator,
         ]
     )
@@ -77,16 +94,9 @@ def format_sale_ticket_text(sale, width: int = TICKET_WIDTH) -> str:
         if item.discount_percentage > 0:
             product_name = f"{product_name} (-{item.discount_percentage}%)"
 
-        name_lines = _wrap(product_name, name_width)
-        first_line = name_lines[0][:name_width]
-        lines.append(
-            f"{first_line:<{name_width}}"
-            f"{item.quantity:>{qty_width}}"
-            f"{_money(item.unit_price):>{unit_width}}"
-            f"{_money(item.total):>{total_width}}"
-        )
-        for extra in name_lines[1:]:
-            lines.append(extra[:width])
+        for name_line in _wrap(product_name, width):
+            lines.append(name_line[:width])
+        lines.append(_item_numbers_line(item.quantity, item.unit_price, item.total, width))
 
     lines.extend(
         [
