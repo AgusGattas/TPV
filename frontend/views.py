@@ -858,6 +858,16 @@ def stock_movement_delete(request, pk):
                     # Revertir devolución: aumentar cantidad
                     stock.current_quantity += movement.quantity
                     # El costo promedio no cambia para devoluciones
+
+                elif movement.type == 'ajuste':
+                    # Revertir ajuste: reincorporar unidades al costo promedio
+                    total_cost = (stock.current_quantity * stock.average_cost) + (
+                        movement.quantity * movement.cost_price
+                    )
+                    total_quantity = stock.current_quantity + movement.quantity
+                    if total_quantity > 0:
+                        stock.average_cost = total_cost / total_quantity
+                    stock.current_quantity = total_quantity
                 
                 # Guardar los cambios en el stock
                 stock.save()
@@ -942,6 +952,48 @@ def add_stock(request, pk):
             return render(request, 'frontend/stock/add_stock.html', context)
     
     return render(request, 'frontend/stock/add_stock.html', context)
+
+
+@login_required
+@require_POST
+def stock_adjust(request, pk):
+    """Ajuste de stock: disminuir unidades corrigiendo un ingreso erróneo."""
+    stock = get_object_or_404(Stock, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        quantity = int(data.get("quantity", 0))
+        cost_price = Decimal(str(data.get("cost_price", 0)))
+        notes = (data.get("notes") or "").strip()
+
+        if cost_price < 0:
+            raise ValueError("El costo por unidad no puede ser negativo")
+
+        reason = "Ajuste de stock"
+        if notes:
+            reason = f"{reason}: {notes}"
+
+        stock.adjust_stock_down(
+            quantity=quantity,
+            cost_price=cost_price,
+            reason=reason,
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f"Ajuste aplicado: se disminuyeron {quantity} unidades.",
+                "current_quantity": stock.current_quantity,
+                "average_cost": str(stock.average_cost),
+            }
+        )
+    except (ValueError, TypeError, decimal.InvalidOperation) as e:
+        return JsonResponse({"success": False, "message": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "message": f"Error al ajustar stock: {str(e)}"},
+            status=400,
+        )
 
 
 @login_required

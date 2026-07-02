@@ -1,0 +1,53 @@
+<!-- Modal Ajuste de Stock -->
+<div class="modal fade" id="adjustStockModal" tabindex="-1" aria-labelledby="adjustStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adjustStockModalLabel">
+                    <i class="fas fa-sliders-h me-2"></i>Ajuste de Stock
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Usá esta opción para corregir unidades cargadas por error. Se disminuirá el stock
+                    y se recalculará el costo promedio según el costo por unidad indicado.
+                </p>
+                <div class="alert alert-info py-2 small mb-3">
+                    <strong id="adjustProductName"></strong><br>
+                    Stock actual: <span id="adjustCurrentStock" class="fw-bold"></span> unidades
+                </div>
+                <div id="adjustStockError" class="alert alert-danger alert-permanent d-none mb-3" role="alert"></div>
+                <form id="adjustStockForm" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" id="adjustStockId" value="">
+                    <div class="mb-3">
+                        <label for="adjustQuantity" class="form-label">Cantidad a disminuir <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="adjustQuantity" min="1" step="1" inputmode="numeric">
+                        <div class="invalid-feedback" id="adjustQuantityFeedback"></div>
+                        <div class="form-text">No puede superar el stock actual (<span id="adjustMaxStockHint"></span> unidades).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustCostPrice" class="form-label">Costo por unidad <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="adjustCostPrice" min="0" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="invalid-feedback" id="adjustCostPriceFeedback"></div>
+                        <div class="form-text">Costo de las unidades que se están corrigiendo.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustNotes" class="form-label">Motivo (opcional)</label>
+                        <textarea class="form-control" id="adjustNotes" rows="2" maxlength="200" placeholder="Ej: Carga errónea de 6 unidades"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="adjustStockSubmit">
+                    <i class="fas fa-check me-1"></i>Aplicar ajuste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

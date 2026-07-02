@@ -90,6 +90,41 @@ class Stock(BaseModel):
             reason=reason
         )
 
+    def adjust_stock_down(self, quantity, cost_price, reason="Ajuste de stock"):
+        """
+        Disminuye stock corrigiendo un ingreso erróneo.
+        Recalcula el costo promedio revirtiendo el impacto de las unidades removidas.
+        """
+        if quantity <= 0:
+            raise ValueError("La cantidad debe ser mayor a 0")
+
+        if self.current_quantity < quantity:
+            raise ValueError(
+                f"Stock insuficiente. Disponible: {self.current_quantity}, Solicitado: {quantity}"
+            )
+
+        cost_price = Decimal(str(cost_price))
+        total_cost_before = (Decimal(self.current_quantity) * self.average_cost) - (
+            Decimal(quantity) * cost_price
+        )
+        total_quantity_before = self.current_quantity - quantity
+
+        if total_quantity_before > 0:
+            self.average_cost = total_cost_before / total_quantity_before
+        else:
+            self.average_cost = Decimal("0")
+
+        self.current_quantity = total_quantity_before
+        self.save()
+
+        StockMovement.objects.create(
+            stock=self,
+            type="ajuste",
+            quantity=quantity,
+            cost_price=cost_price,
+            reason=reason,
+        )
+
 
 class StockMovement(BaseModel):
     """
@@ -99,6 +134,7 @@ class StockMovement(BaseModel):
         ('ingreso', _('Ingreso')),
         ('egreso', _('Egreso')),
         ('devolucion', _('Devolución')),
+        ('ajuste', _('Ajuste')),
     )
 
     stock = models.ForeignKey(

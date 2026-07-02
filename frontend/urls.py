@@ -40,6 +40,7 @@ urlpatterns = [
     path('stock/movimientos/', views.stock_movements, name='stock_movements'),
     path('stock/movimientos/<int:pk>/eliminar/', views.stock_movement_delete, name='stock_movement_delete'),
     path('stock/<int:pk>/agregar/', views.add_stock, name='add_stock'),
+    path('stock/<int:pk>/ajustar/', views.stock_adjust, name='stock_adjust'),
     
     # Caja
     path('caja/', views.cashbox_list, name='cashbox_list'),

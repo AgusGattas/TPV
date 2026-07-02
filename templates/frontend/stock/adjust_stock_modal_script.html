@@ -1,0 +1,171 @@
+<script>
+(function () {
+    if (window.__adjustStockModalInitialized) {
+        return;
+    }
+    window.__adjustStockModalInitialized = true;
+
+    const modalEl = document.getElementById("adjustStockModal");
+    if (!modalEl) {
+        return;
+    }
+
+    const modal = new bootstrap.Modal(modalEl);
+    const form = document.getElementById("adjustStockForm");
+    const stockIdInput = document.getElementById("adjustStockId");
+    const productNameEl = document.getElementById("adjustProductName");
+    const currentStockEl = document.getElementById("adjustCurrentStock");
+    const maxStockHintEl = document.getElementById("adjustMaxStockHint");
+    const quantityInput = document.getElementById("adjustQuantity");
+    const quantityFeedback = document.getElementById("adjustQuantityFeedback");
+    const costInput = document.getElementById("adjustCostPrice");
+    const costFeedback = document.getElementById("adjustCostPriceFeedback");
+    const notesInput = document.getElementById("adjustNotes");
+    const errorEl = document.getElementById("adjustStockError");
+    const submitBtn = document.getElementById("adjustStockSubmit");
+
+    let maxStock = 0;
+
+    function getCsrfToken() {
+        const input = form.querySelector("[name=csrfmiddlewaretoken]");
+        if (input && input.value) {
+            return input.value;
+        }
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+    }
+
+    function clearFieldErrors() {
+        quantityInput.classList.remove("is-invalid");
+        costInput.classList.remove("is-invalid");
+        quantityFeedback.textContent = "";
+        costFeedback.textContent = "";
+        errorEl.classList.add("d-none");
+        errorEl.textContent = "";
+    }
+
+    function showFieldError(input, feedbackEl, message) {
+        input.classList.add("is-invalid");
+        feedbackEl.textContent = message;
+    }
+
+    function showGeneralError(message) {
+        errorEl.textContent = message;
+        errorEl.classList.remove("d-none");
+        errorEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (typeof showToast === "function") {
+            showToast(message, "error");
+        }
+    }
+
+    function validateForm() {
+        clearFieldErrors();
+
+        const quantity = parseInt(quantityInput.value, 10);
+        const costPrice = parseFloat(costInput.value);
+
+        if (!quantityInput.value || isNaN(quantity) || quantity <= 0) {
+            showFieldError(quantityInput, quantityFeedback, "Ingresá una cantidad válida mayor a 0.");
+            quantityInput.focus();
+            return null;
+        }
+
+        if (quantity > maxStock) {
+            const message = "No podés disminuir más de " + maxStock + " unidades. Stock actual: " + maxStock + ".";
+            showFieldError(quantityInput, quantityFeedback, message);
+            showGeneralError(message);
+            quantityInput.focus();
+            return null;
+        }
+
+        if (!costInput.value || isNaN(costPrice) || costPrice < 0) {
+            showFieldError(costInput, costFeedback, "Ingresá un costo por unidad válido.");
+            costInput.focus();
+            return null;
+        }
+
+        return { quantity: quantity, costPrice: costPrice };
+    }
+
+    window.openAdjustStockModal = function (stockId, productName, currentStock, suggestedCost) {
+        maxStock = parseInt(currentStock, 10) || 0;
+        stockIdInput.value = stockId;
+        productNameEl.textContent = productName;
+        currentStockEl.textContent = maxStock;
+        maxStockHintEl.textContent = maxStock;
+        quantityInput.value = "";
+        costInput.value = suggestedCost > 0 ? parseFloat(suggestedCost).toFixed(2) : "";
+        notesInput.value = "";
+        clearFieldErrors();
+        modal.show();
+    };
+
+    quantityInput.addEventListener("input", function () {
+        quantityInput.classList.remove("is-invalid");
+        quantityFeedback.textContent = "";
+        errorEl.classList.add("d-none");
+        errorEl.textContent = "";
+
+        const quantity = parseInt(quantityInput.value, 10);
+        if (!isNaN(quantity) && quantity > maxStock) {
+            const message = "No podés disminuir más de " + maxStock + " unidades.";
+            showFieldError(quantityInput, quantityFeedback, message);
+        }
+    });
+
+    submitBtn.addEventListener("click", async function () {
+        const validated = validateForm();
+        if (!validated) {
+            return;
+        }
+
+        const stockId = stockIdInput.value;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Aplicando...';
+
+        try {
+            const response = await fetch("/stock/" + stockId + "/ajustar/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCsrfToken(),
+                },
+                body: JSON.stringify({
+                    quantity: validated.quantity,
+                    cost_price: validated.costPrice,
+                    notes: notesInput.value.trim(),
+                }),
+            });
+
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                showGeneralError("No se pudo procesar la respuesta del servidor.");
+                return;
+            }
+
+            if (response.ok && data.success) {
+                modal.hide();
+                if (typeof showToast === "function") {
+                    showToast(data.message, "success");
+                }
+                setTimeout(function () {
+                    window.location.reload();
+                }, 600);
+            } else {
+                const message = data.message || "No se pudo aplicar el ajuste.";
+                showGeneralError(message);
+                if (message.toLowerCase().includes("stock")) {
+                    showFieldError(quantityInput, quantityFeedback, message);
+                }
+            }
+        } catch (err) {
+            showGeneralError("Error de conexión. Intentá de nuevo.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check me-1"></i>Aplicar ajuste';
+        }
+    });
+})();
+</script>

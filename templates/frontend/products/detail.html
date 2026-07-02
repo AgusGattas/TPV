@@ -97,6 +97,12 @@
             <a href="{% url 'frontend:add_stock' product.stock_info.id %}" class="btn btn-success">
                 <i class="fas fa-plus me-2"></i>Agregar Stock
             </a>
+            {% if product.stock_info %}
+            <button type="button" class="btn btn-warning"
+                    onclick="openAdjustStockModal({{ product.stock_info.id }}, '{{ product.name|escapejs }}', {{ product.stock_info.current_quantity }}, {{ last_cost_price|default:0 }})">
+                <i class="fas fa-sliders-h me-2"></i>Ajuste de Stock
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -247,6 +253,9 @@
                                     {% elif movement.type == 'egreso' %}
                                         <i class="fas fa-arrow-up text-danger me-1"></i>
                                         Salida
+                                    {% elif movement.type == 'ajuste' %}
+                                        <i class="fas fa-sliders-h text-warning me-1"></i>
+                                        Ajuste
                                     {% else %}
                                         <i class="fas fa-undo text-warning me-1"></i>
                                         Devolución
@@ -255,19 +264,21 @@
                                 <div class="text-muted small">{{ movement.reason }}</div>
                             </div>
                             <div class="text-end me-3">
-                                <div class="fw-bold {% if movement.type == 'ingreso' %}text-success{% elif movement.type == 'egreso' %}text-danger{% else %}text-warning{% endif %}">
+                                <div class="fw-bold {% if movement.type == 'ingreso' %}text-success{% elif movement.type == 'egreso' %}text-danger{% elif movement.type == 'ajuste' %}text-warning{% else %}text-warning{% endif %}">
                                     {% if movement.type == 'ingreso' %}+{% else %}-{% endif %}{{ movement.quantity }}
                                 </div>
                                 <div class="text-muted small">{{ movement.created_at|date:"d/m/Y H:i" }}</div>
                             </div>
                             <div class="flex-shrink-0">
-                                {% if user.is_admin and movement.type == 'ingreso' and not movement.sale %}
+                                {% if user.is_admin and not movement.sale %}
+                                    {% if movement.type == 'ingreso' or movement.type == 'ajuste' %}
                                 <a href="{% url 'frontend:stock_movement_delete' movement.pk %}?from=product_detail&product_id={{ product.pk }}" 
                                    class="btn btn-sm btn-outline-danger" 
                                    title="Eliminar Movimiento"
                                    onclick="return confirm('¿Está seguro de que desea eliminar este movimiento? Esta acción revertirá el impacto en el stock.')">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
+                                    {% endif %}
                                 {% elif movement.type == 'egreso' or movement.sale %}
                                 <span class="text-muted" title="No se puede eliminar - movimiento de venta">
                                     <i class="fas fa-lock"></i>
@@ -373,6 +384,8 @@
     </div>
 </div>
 
+{% include 'frontend/stock/adjust_stock_modal.html' %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Calcular margen de ganancia para la estadística principal
@@ -391,4 +404,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endblock %}
+
+{% block frontend_extra_js %}
+{% include 'frontend/stock/adjust_stock_modal_script.html' %}
 {% endblock %} 
